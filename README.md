@@ -8,10 +8,10 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 │ │Images│                         │ the item you clicked,  │
 │ │──────│   1 · SEARCH            │ with YouTube controls  │
 │ │YouTube   (each tab keeps its   ├────────────────────────┤
-│ │──────│    own page + history)  │ 3 · vMIX OUTPUT        │
-│ │Lyrics│                         │ clean copy of panel 2  │
-│ └──────┘                         │ (this is what vMix     │
-│                                  │  captures)             │
+│ │──────│    own page + history)  │ 3 · vMIX OUTPUT (NDI)  │
+│ │Lyrics│                         │ clean copy of panel 2, │
+│ └──────┘                         │ sent to vMix over NDI  │
+│                                  │ with sound             │
 └──────────────────────────────────┴────────────────────────┘
 ```
 
@@ -42,16 +42,21 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 
 ## Setting up vMix
 
-1. Start the app with the desktop shortcut and keep the window **maximized**. The capture position depends on the window size.
-2. Panel 3's header shows its position, for example `Display 1 crop: X 1153, Y 597, 757×426`.
-3. In vMix: **Add Input → Desktop Capture**, then choose the display shown in the header.
-4. Open the input's **Crop** settings and enter the X, Y, width and height from the header. Those values are physical screen pixels.
-5. Click an image and confirm it appears in the vMix preview; then try a video and a lyrics slide, then **Black**.
-6. For audio, capture the system audio, or route the app's audio, in vMix's audio settings.
+The app sends panel 3 to vMix as an **NDI® source**: full 1920×1080 at up to 30 fps, **with the YouTube sound**, and no screen cropping.
+
+1. Start the app. Panel 3's header shows `NDI · Vmix Reference Studio · waiting for vMix`.
+2. In vMix: **Add Input → NDI / Desktop Capture**, then pick **`<YOUR-PC-NAME> (Vmix Reference Studio)`** and click OK.
+3. The header changes to `1 receiving`. Click an image, a video and a lyrics slide, then **Black**, and confirm each in the vMix preview.
+4. The NDI input carries the video's sound. In vMix's audio mixer, turn that input's audio on (and use it instead of capturing the computer's sound).
 
 Notes:
-- If the window is moved or resized, the crop values change. Re-check them in panel 3's header.
-- Do not minimise the app while live. Windows does not draw minimised windows, so vMix would capture nothing. It is fine to cover it with other windows.
+- Panel 3 is a live preview of exactly what NDI sends. When a video plays, the NDI picture shows only the video: no YouTube title, controls or captions.
+- NDI keeps working when the app window is minimised or covered.
+- NDI must be installed. vMix installs it in its own folder, so a computer with vMix needs nothing more. On a computer without vMix (for example, sending to vMix on another PC over the network), install the free **NDI Runtime / NDI Tools** from ndi.video. If NDI is missing, panel 3's header says so.
+- The computer's speakers also play the video sound. If you monitor through vMix, mute the speakers or lower the Windows volume for this app.
+- Alternative without NDI: vMix **Desktop Capture** of the display, cropped to panel 3. Hover over panel 3 to see the crop values; they change if the window is moved or resized.
+
+NDI® is a registered trademark of Vizrt NDI AB. The app uses the NDI library installed on the computer and does not include it.
 
 ## Installing / building
 
@@ -75,7 +80,8 @@ If you run `npm run dev` from a VS Code terminal and Electron starts as plain No
 - **Electron + React + TypeScript**, built with electron-vite and packaged with electron-builder (NSIS installer + portable).
 - `src/main` is the main process and the single source of truth. It holds the three search tabs (`research/tabs.ts`), the program shown in panels 2/3 (`player/programController.ts`, state machine in `src/shared/program.ts`), settings and ad blocking.
 - Each search tab is a sandboxed `WebContentsView` without access to any app API. A small preload (`src/preload/research.ts`) reports only **genuine** clicks and text selections (`event.isTrusted`). The main process validates every message with zod and only accepts each tab's own kind of content.
-- Videos use YouTube's **official embedded player**, with two players: panel 2 (controls, muted) and panel 3 (clean, audible). Panel 3 is re-aligned to panel 2 every 250 ms (`src/shared/sync.ts`). If the owner disables embedding, the app retries with the YouTube watch page; only the surrounding page is hidden, and YouTube's player and branding are never altered.
+- Videos use YouTube's **official embedded player**, with two players: panel 2 (controls, muted) and an offscreen output player (video only, audible). The output player is re-aligned to panel 2 every 250 ms (`src/shared/sync.ts`).
+- **NDI output** (`src/main/output`, `src/main/ndi`): the program is rendered offscreen at 1920×1080 (an output page for images and lyrics, and the output YouTube player for video). Frames go to an NDI sender on a worker thread (the installed NDI library called through koffi), and a scaled JPEG preview goes to panel 3. The video's sound is captured from the output player with Web Audio (`src/preload/audioTap.ts`) and sent as NDI audio. If the owner disables embedding, the app retries with the YouTube watch page; only the surrounding page is hidden, and YouTube's player and branding are never altered.
 - Security: context isolation, sandboxing, no Node in any page, validated IPC with sender checks, a strict CSP for the app page, navigation and permission restrictions, and Electron fuses in the packaged exe (no `ELECTRON_RUN_AS_NODE`, no `NODE_OPTIONS`/`--inspect`, asar integrity).
 - Ad blocking uses Ghostery's maintained engine with EasyList/EasyPrivacy-based prebuilt lists, cached on disk.
 - Settings live in `%APPDATA%\Vmix Reference Studio\data\settings.json`, with an automatic backup and recovery if the file is damaged.

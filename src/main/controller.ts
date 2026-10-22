@@ -5,10 +5,13 @@ import { isLyricsSelection, lyricsToSlides, titleFromSearchPage } from '../share
 import { resolveImagePick, resolveVideoLink } from '../shared/researchItems';
 import { RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL } from '../shared/researchChannels';
 import { researchPickSchema, type ResearchPick } from '../shared/schemas';
-import { parseSettings, type Settings, defaultSettings } from '../shared/settings';
+import type { OutputPageState } from '../shared/outputPage';
+import { defaultSettings, lyricsStyleFor, parseSettings, type Settings } from '../shared/settings';
 import type { AppSnapshot, CaptureInfo, NotifyLevel, Rect, TabId } from '../shared/types';
 import { AdblockManager } from './adblock';
 import { adblockCacheDirectory, dataDirectory, isDev } from './paths';
+import { NdiSender } from './ndi/ndiSender';
+import { OffscreenOutput } from './output/offscreenOutput';
 import { ProgramController } from './player/programController';
 import { ResearchTabs } from './research/tabs';
 import { JsonStore } from './store/jsonStore';
@@ -27,6 +30,9 @@ export class Controller {
   readonly tabs: ResearchTabs;
   readonly program: ProgramController;
   readonly adblock: AdblockManager;
+  readonly ndi: NdiSender;
+  readonly output: OffscreenOutput;
+  private outputPageKey = '';
 
   constructor(
     private readonly window: BrowserWindow,
@@ -56,9 +62,17 @@ export class Controller {
       allowInspect: isDev
     });
 
+    // NDI output: the program is rendered offscreen at 1920×1080 and sent to vMix; panel 3 previews it.
+    this.ndi = new NdiSender(() => this.scheduleBroadcast());
+    this.output = new OffscreenOutput(this.ndi, (jpeg) => this.send('app:outputFrame', jpeg));
+
     this.program = new ProgramController(window, sessions.media, {
-      onChange: () => this.scheduleBroadcast(),
-      onKey: (input) => this.handleKey(input, 'web')
+      onChange: () => {
+        this.syncOutputPage();
+        this.scheduleBroadcast();
+      },
+      onKey: (input) => this.handleKey(input, 'web'),
+      onOutputVideo: (videoWindow) => this.output.setVideo(videoWindow)
     });
 
     this.adblock = new AdblockManager(
@@ -80,7 +94,21 @@ export class Controller {
   }
 
   async start(): Promise<void> {
+    this.ndi.start();
     await this.adblock.init();
+  }
+
+  /** Tells the offscreen output page what to draw (images, lyrics or black). */
+  private syncOutputPage(): void {
+    const p = this.program.program;
+    let state: OutputPageState;
+    if (p.kind === 'image') state = { kind: 'image', rev: p.rev, url: p.url, fallbackUrl: p.fallbackUrl };
+    else if (p.kind === 'lyrics') state = { kind: 'lyrics', rev: p.rev, text: p.slides[p.index] ?? '', style: lyricsStyleFor(this.settings) };
+    else state = { kind: 'black', rev: p.rev };
+    const key = JSON.stringify(state);
+    if (key === this.outputPageKey) return;
+    this.outputPageKey = key;
+    this.output.render(state);
   }
 
   /* ---------------------------------------------------------------- */
@@ -96,6 +124,7 @@ export class Controller {
       adblock: this.adblock.status(),
       settings: this.settings,
       capture: this.captureInfo(),
+      ndi: this.ndi.status,
       version: app.getVersion()
     };
   }
@@ -213,6 +242,7 @@ export class Controller {
   private saveSettings(next: Settings): void {
     this.settings = parseSettings(next);
     this.settingsStore.save(this.settings);
+    this.syncOutputPage();
     this.scheduleBroadcast();
   }
 
@@ -295,6 +325,8 @@ export class Controller {
     this.persistTabUrls();
     this.settingsStore.flush();
     this.program.destroy();
+    this.output.destroy();
+    this.ndi.stop();
     this.tabs.destroy();
   }
 }

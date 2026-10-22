@@ -1,7 +1,7 @@
 {
   "name": "vmix-reference-studio",
   "productName": "Vmix Reference Studio",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Three-panel research and presentation app (search, player, vMix output) for live webinars.",
   "main": "./out/main/index.js",
   "author": "Vmix Reference Studio",
@@ -23,6 +23,7 @@
   "dependencies": {
     "@ghostery/adblocker-electron": "2.20.1",
     "@ghostery/adblocker-electron-preload": "2.20.1",
+    "koffi": "3.3.2",
     "zod": "4.6.7"
   },
   "devDependencies": {

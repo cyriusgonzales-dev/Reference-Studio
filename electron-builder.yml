@@ -10,6 +10,9 @@ files:
   - out/**
   - package.json
   - "!**/*.map"
+# koffi (used to call the NDI library) ships a native binary that must live outside the asar archive.
+asarUnpack:
+  - node_modules/koffi/**
 win:
   icon: build/icon.ico
   target:

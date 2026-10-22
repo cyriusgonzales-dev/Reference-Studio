@@ -28,7 +28,11 @@ export default defineConfig({
   main: {
     build: {
       rollupOptions: {
-        input: { index: resolve(__dirname, 'src/main/index.ts') }
+        input: {
+          index: resolve(__dirname, 'src/main/index.ts'),
+          // NDI sending runs on a worker thread (see src/main/ndi).
+          ndiWorker: resolve(__dirname, 'src/main/ndi/ndiWorker.ts')
+        }
       }
     }
   },
@@ -37,7 +41,9 @@ export default defineConfig({
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'src/preload/main.ts'),
-          research: resolve(__dirname, 'src/preload/research.ts')
+          research: resolve(__dirname, 'src/preload/research.ts'),
+          outputPage: resolve(__dirname, 'src/preload/outputPage.ts'),
+          audioTap: resolve(__dirname, 'src/preload/audioTap.ts')
         },
         output: { format: 'cjs', entryFileNames: '[name].cjs' }
       }
@@ -50,7 +56,8 @@ export default defineConfig({
       minify: 'esbuild',
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/renderer/index.html')
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          output: resolve(__dirname, 'src/renderer/output.html')
         }
       }
     }

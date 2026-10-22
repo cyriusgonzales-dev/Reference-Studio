@@ -5,6 +5,7 @@ import { youtubeWatchUrl } from '../../../shared/urls';
 import { run } from '../lib/api';
 import { formatTime } from '../lib/format';
 import { useResolvedImage, useViewBounds } from '../lib/hooks';
+import { OutputPreview } from './OutputPreview';
 import { Stage } from './Stage';
 
 /** Panel 2 (player, with controls) and panel 3 (clean vMix output) stacked on the right. */
@@ -37,16 +38,35 @@ export function OutputPanels({ snap }: { snap: AppSnapshot }) {
       <div className="panel-head output-head">
         <span className="panel-num live">3</span>
         <span className="panel-title">vMix output</span>
-        <span className="ellipsis grow faint small" title="Use these values as the crop in vMix Desktop Capture">
-          {capture
-            ? `${capture.displayName} crop: X ${capture.displayCrop.x}, Y ${capture.displayCrop.y}, ${capture.displayCrop.width}×${capture.displayCrop.height}`
-            : ''}
-        </span>
+        <NdiBadge snap={snap} />
       </div>
-      <div ref={outputRef} className="stage output">
-        <Stage snap={snap} imageSrc={image.src} clean />
+      <div
+        ref={outputRef}
+        className="stage output"
+        title={capture ? `Desktop Capture alternative — ${capture.displayName} crop: X ${capture.displayCrop.x}, Y ${capture.displayCrop.y}, ${capture.displayCrop.width}×${capture.displayCrop.height}` : undefined}
+      >
+        <OutputPreview />
       </div>
     </section>
+  );
+}
+
+/** NDI status for panel 3: the source name vMix lists and how many receivers are connected. */
+function NdiBadge({ snap }: { snap: AppSnapshot }) {
+  const ndi = snap.ndi;
+  if (ndi.state === 'running') {
+    return (
+      <span className="ellipsis grow small" title="In vMix: Add Input → NDI / Desktop Capture → choose this source">
+        <span className={`chip ${ndi.connections > 0 ? 'live' : ''}`}>NDI</span>{' '}
+        <span className="muted">{ndi.sourceName}</span>{' '}
+        <span className="faint">· {ndi.connections > 0 ? `${ndi.connections} receiving` : 'waiting for vMix'}</span>
+      </span>
+    );
+  }
+  return (
+    <span className={`ellipsis grow small ${ndi.state === 'starting' ? 'faint' : 'error-text'}`} title={ndi.message ?? undefined}>
+      {ndi.state === 'starting' ? 'Starting NDI…' : ndi.message}
+    </span>
   );
 }
 

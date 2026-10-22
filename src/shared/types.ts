@@ -83,6 +83,15 @@ export interface AdblockStatus {
   error: string | null;
 }
 
+/** The NDI output that vMix receives. */
+export interface NdiStatus {
+  state: 'starting' | 'running' | 'unavailable' | 'error';
+  sourceName: string;
+  /** Number of receivers (for example vMix inputs) connected right now. */
+  connections: number;
+  message: string | null;
+}
+
 export interface AppSnapshot {
   activeTab: TabId;
   tabs: Record<TabId, TabState>;
@@ -91,6 +100,7 @@ export interface AppSnapshot {
   adblock: AdblockStatus;
   settings: Settings;
   capture: CaptureInfo | null;
+  ndi: NdiStatus;
   version: string;
 }
 

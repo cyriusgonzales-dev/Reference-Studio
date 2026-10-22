@@ -13,6 +13,8 @@ export interface EventPayloads {
   'app:snapshot': AppSnapshot;
   'app:notify': { level: NotifyLevel; message: string };
   'app:focusSearch': null;
+  /** JPEG preview of the NDI output for panel 3. */
+  'app:outputFrame': Uint8Array;
 }
 
 type InvokeArgs<C extends InvokeChannel> = RequestOf<C> extends undefined ? [] : [payload: RequestOf<C>];

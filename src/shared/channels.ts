@@ -24,5 +24,5 @@ export const INVOKE_CHANNELS = [
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
 
 /** Main → operator UI events. */
-export const EVENT_CHANNELS = ['app:snapshot', 'app:notify', 'app:focusSearch'] as const;
+export const EVENT_CHANNELS = ['app:snapshot', 'app:notify', 'app:focusSearch', 'app:outputFrame'] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];

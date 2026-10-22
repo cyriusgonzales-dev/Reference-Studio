@@ -7,18 +7,21 @@ const devServerUrl = process.env['ELECTRON_RENDERER_URL'];
 
 export const isDev = !app.isPackaged && !!devServerUrl;
 
-export function preloadPath(name: 'main' | 'research'): string {
+export function preloadPath(name: 'main' | 'research' | 'outputPage' | 'audioTap'): string {
   return path.join(__dirname, '../preload', `${name}.cjs`);
 }
 
-export function rendererPage(): { kind: 'url'; url: string } | { kind: 'file'; file: string } {
-  if (isDev && devServerUrl) return { kind: 'url', url: `${devServerUrl.replace(/\/$/, '')}/index.html` };
-  return { kind: 'file', file: path.join(__dirname, '../renderer/index.html') };
+/** "index" is the operator window; "output" is the offscreen page drawn for NDI. */
+export type AppPage = 'index' | 'output';
+
+export function rendererPage(page: AppPage = 'index'): { kind: 'url'; url: string } | { kind: 'file'; file: string } {
+  if (isDev && devServerUrl) return { kind: 'url', url: `${devServerUrl.replace(/\/$/, '')}/${page}.html` };
+  return { kind: 'file', file: path.join(__dirname, `../renderer/${page}.html`) };
 }
 
-/** True when a URL is the application's own operator page. */
-export function isAppPageUrl(url: string): boolean {
-  const target = rendererPage();
+/** True when a URL is one of the application's own pages. */
+export function isAppPageUrl(url: string, page: AppPage = 'index'): boolean {
+  const target = rendererPage(page);
   try {
     const actual = new URL(url);
     if (target.kind === 'url') {

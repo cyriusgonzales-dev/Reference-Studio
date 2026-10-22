@@ -2,16 +2,19 @@ import type { BrowserWindow, Session } from 'electron';
 import { initialProgram, reduceProgram, type ProgramEvent } from '../../shared/program';
 import { syncCommands } from '../../shared/sync';
 import type { Playback, ProgramState, Rect } from '../../shared/types';
-import { describeYouTubeError, YouTubeView } from './youtubeView';
+import { OFFSCREEN_LAYOUT } from '../output/offscreenOutput';
+import { preloadPath } from '../paths';
+import { describeYouTubeError, OffscreenYouTube, YouTubeView } from './youtubeView';
 
 /**
  * Owns what panel 2 (player) and panel 3 (vMix output) show.
  *
- * Images and lyrics are drawn by the operator UI from the program state. A
- * video uses two YouTube players: panel 2 is the operator's player with
- * YouTube's own controls (muted, so there is no double audio), panel 3 is a
- * clean player without controls that carries the sound. Every 250 ms panel 3
- * is re-aligned to panel 2 (play/pause, position, volume, speed).
+ * Images and lyrics are drawn from the program state (panel 2 by the operator
+ * UI, the output by the offscreen output page). A video uses two YouTube
+ * players: panel 2 is the operator's player with YouTube's own controls
+ * (muted, so there is no double audio); the output player renders offscreen
+ * for NDI, shows only the video picture and carries the sound. Every 250 ms
+ * the output player is re-aligned to panel 2 (play/pause, position, volume, speed).
  */
 
 const SYNC_INTERVAL_MS = 250;
@@ -20,13 +23,15 @@ const LOAD_TIMEOUT_MS = 25_000;
 export interface ProgramHost {
   onChange(): void;
   onKey(input: Electron.Input): boolean;
+  /** The offscreen output player window appeared (video) or went away. */
+  onOutputVideo(window: BrowserWindow | null): void;
 }
 
 export class ProgramController {
   private state: ProgramState = initialProgram();
   private playbackValue: Playback | null = null;
   private player: YouTubeView | null = null;
-  private output: YouTubeView | null = null;
+  private output: OffscreenYouTube | null = null;
   /** Identifies the loaded video views ("videoId:mode:rev"). */
   private loadedKey: string | null = null;
   private syncTimer: NodeJS.Timeout | null = null;
@@ -66,8 +71,8 @@ export class ProgramController {
       this.playerBounds = rect;
       this.player?.setBounds(rect);
     } else {
+      // Panel 3 only previews the offscreen output; its position is kept for vMix crop values.
       this.outputBounds = rect;
-      this.output?.setBounds(rect);
     }
   }
 
@@ -91,15 +96,16 @@ export class ProgramController {
       s.mode,
       this.playerBounds
     );
-    this.output = new YouTubeView(
-      this.host,
+    this.output = new OffscreenYouTube(
       this.mediaSession,
       { role: 'output', audible: true, onKey: this.callbacks.onKey, onLoadFailed: fail },
       s.videoId,
       s.startSeconds,
       s.mode,
-      this.outputBounds
+      OFFSCREEN_LAYOUT,
+      preloadPath('audioTap')
     );
+    this.callbacks.onOutputVideo(this.output.window);
     this.playbackValue = { playing: false, currentTime: 0, duration: 0 };
     this.syncTimer = setInterval(() => void this.syncTick(rev), SYNC_INTERVAL_MS);
     this.loadTimer = setTimeout(() => {
@@ -143,6 +149,7 @@ export class ProgramController {
     if (this.loadTimer) clearTimeout(this.loadTimer);
     this.syncTimer = null;
     this.loadTimer = null;
+    if (this.output) this.callbacks.onOutputVideo(null);
     this.player?.destroy();
     this.output?.destroy();
     this.player = null;
