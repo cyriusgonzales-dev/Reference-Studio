@@ -1,4 +1,5 @@
-import type { SearchEngine, SearchMode } from './types';
+export type SearchMode = 'images' | 'youtube' | 'web';
+export type SearchEngine = 'google' | 'duckduckgo' | 'bing';
 
 /** Largest data: image URL accepted for presentation (characters). */
 export const MAX_DATA_IMAGE_URL_LENGTH = 6 * 1024 * 1024;
@@ -38,13 +39,7 @@ export function isAllowedImageUrl(input: string): boolean {
     const payload = input.slice(prefix[0].length);
     return payload.length > 0 && BASE64_RE.test(payload);
   }
-  if (input.startsWith('vrs-asset://')) return isAssetUrl(input);
   return isHttpUrl(input);
-}
-
-/** URLs of files the operator imported into the application's asset folder. */
-export function isAssetUrl(input: string): boolean {
-  return /^vrs-asset:\/\/local\/[a-z0-9-]+\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(input);
 }
 
 /** Heuristic used by the address bar: does the input look like a URL rather than search terms? */
@@ -171,6 +166,7 @@ export function youtubeWatchUrl(videoId: string, startSeconds?: number): string 
 
 export interface EmbedOptions {
   startSeconds?: number;
+  /** Show YouTube's controls and allow its keyboard shortcuts (operator player). */
   controls: boolean;
 }
 
@@ -182,7 +178,7 @@ export function youtubeEmbedUrl(videoId: string, options: EmbedOptions): string 
     modestbranding: '1',
     iv_load_policy: '3',
     fs: '0',
-    disablekb: '1',
+    disablekb: options.controls ? '0' : '1',
     controls: options.controls ? '1' : '0'
   });
   if (options.startSeconds && options.startSeconds > 0) params.set('start', String(Math.floor(options.startSeconds)));

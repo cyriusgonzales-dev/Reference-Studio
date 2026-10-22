@@ -1,7 +1,8 @@
 import { app, session, type BrowserWindow } from 'electron';
-import { AppController } from './appController';
+import { Controller } from './controller';
 import { registerIpc } from './ipc';
 import { createMainWindow } from './mainWindow';
+import { preloadPath } from './paths';
 import { installProtocolHandlers, registerPrivilegedSchemes } from './protocols';
 import {
   hardenAppSession,
@@ -13,8 +14,8 @@ import {
 
 /*
  * Chromium on Windows stops painting windows it believes are fully covered
- * ("native window occlusion"). A covered Presentation Output must keep
- * rendering for vMix capture, so the optimisation is disabled.
+ * ("native window occlusion"). The vMix panel must keep rendering even when
+ * another window is in front, so the optimisation is disabled.
  */
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 app.setAppUserModelId('app.vmix-reference-studio');
@@ -22,11 +23,11 @@ app.setAppUserModelId('app.vmix-reference-studio');
 registerPrivilegedSchemes();
 installGlobalWebContentsGuards();
 
-let controller: AppController | null = null;
+let controller: Controller | null = null;
 let mainWindow: BrowserWindow | null = null;
 
 if (!app.requestSingleInstanceLock()) {
-  // A second copy would fight over the same data files and output display.
+  // A second copy would fight over the same data files.
   app.quit();
 } else {
   app.on('second-instance', () => {
@@ -41,15 +42,18 @@ if (!app.requestSingleInstanceLock()) {
     const media = session.fromPartition(MEDIA_PARTITION);
     hardenRemoteSession(research);
     hardenRemoteSession(media);
+    // Reports genuine clicks and selections in the search tabs (exposes nothing to pages).
+    research.registerPreloadScript({ type: 'frame', filePath: preloadPath('research') });
     installProtocolHandlers(research);
 
     mainWindow = createMainWindow();
-    controller = new AppController(mainWindow, { research, media });
+    controller = new Controller(mainWindow, { research, media });
     registerIpc(controller, mainWindow);
+    const ctl = controller;
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && ctl.handleKey(input, 'web')) event.preventDefault();
+    });
 
-    // Closing the operator window ends the session. The output window normally
-    // hides instead of closing (so Alt+F4 cannot black out a live show), so it is
-    // destroyed explicitly here rather than relying on the quit sequence.
     mainWindow.on('closed', () => {
       mainWindow = null;
       controller?.dispose();
@@ -57,16 +61,10 @@ if (!app.requestSingleInstanceLock()) {
       app.quit();
     });
 
-    controller.start().catch((error: Error) => {
-      console.error('Startup task failed:', error);
-    });
+    controller.start().catch((error: Error) => console.error('Startup task failed:', error));
   });
 
   app.on('before-quit', () => {
-    controller?.flush();
-  });
-
-  app.on('will-quit', () => {
     controller?.dispose();
     controller = null;
   });

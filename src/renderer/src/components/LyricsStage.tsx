@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { LyricsStyle } from '../../../shared/types';
+import type { LyricsStyle } from '../../../shared/lyrics';
 import { applyLyricsStyle, fitLyricsText, REFERENCE_HEIGHT } from '../lib/lyricsRender';
 
 interface Props {

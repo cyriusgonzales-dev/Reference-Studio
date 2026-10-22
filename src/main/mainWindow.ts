@@ -2,16 +2,14 @@ import { app, BrowserWindow, screen } from 'electron';
 import { isAppPageUrl, preloadPath, rendererPage } from './paths';
 import { lockNavigation } from './security';
 
-/** Creates the operator window on the primary display. */
+/** Creates the single application window (all three panels live inside it). */
 export function createMainWindow(): BrowserWindow {
-  const primary = screen.getPrimaryDisplay().workArea;
-  const width = Math.min(1600, primary.width);
-  const height = Math.min(1000, primary.height);
+  const area = screen.getPrimaryDisplay().workArea;
   const win = new BrowserWindow({
-    x: Math.round(primary.x + (primary.width - width) / 2),
-    y: Math.round(primary.y + (primary.height - height) / 2),
-    width,
-    height,
+    x: area.x,
+    y: area.y,
+    width: area.width,
+    height: area.height,
     minWidth: 1100,
     minHeight: 680,
     show: false,
@@ -25,17 +23,19 @@ export function createMainWindow(): BrowserWindow {
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: true,
+      // Panel 3 must keep painting while the window is covered so vMix capture never freezes.
+      backgroundThrottling: false,
       devTools: !app.isPackaged
     }
   });
   win.setMenu(null);
-  lockNavigation(win.webContents, (url) => isAppPageUrl(url, 'index'));
+  lockNavigation(win.webContents, isAppPageUrl);
   win.once('ready-to-show', () => {
     win.maximize();
     win.show();
   });
 
-  const page = rendererPage('index');
+  const page = rendererPage();
   if (page.kind === 'url') void win.loadURL(page.url);
   else void win.loadFile(page.file);
   return win;

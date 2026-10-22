@@ -37,7 +37,7 @@ export default defineConfig({
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'src/preload/main.ts'),
-          output: resolve(__dirname, 'src/preload/output.ts')
+          research: resolve(__dirname, 'src/preload/research.ts')
         },
         output: { format: 'cjs', entryFileNames: '[name].cjs' }
       }
@@ -50,8 +50,7 @@ export default defineConfig({
       minify: 'esbuild',
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/renderer/index.html'),
-          output: resolve(__dirname, 'src/renderer/output.html')
+          index: resolve(__dirname, 'src/renderer/index.html')
         }
       }
     }

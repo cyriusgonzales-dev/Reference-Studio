@@ -1,4 +1,4 @@
-import type { LyricsStyle } from '../../../shared/types';
+import type { LyricsStyle } from '../../../shared/lyrics';
 
 /**
  * Lyrics layout shared by the Presentation Output and every preview in the
@@ -25,14 +25,6 @@ export function applyLyricsStyle(stage: HTMLElement, text: HTMLElement, style: L
   stage.style.alignItems = { top: 'flex-start', middle: 'center', bottom: 'flex-end' }[style.vAlign];
   stage.style.overflow = 'hidden';
   stage.style.position = stage.style.position || 'relative';
-  if (style.backgroundImage) {
-    const dim = style.backgroundDim;
-    stage.style.backgroundImage = `linear-gradient(rgba(0,0,0,${dim}), rgba(0,0,0,${dim})), url("${cssUrl(style.backgroundImage)}")`;
-    stage.style.backgroundSize = 'cover';
-    stage.style.backgroundPosition = 'center';
-  } else {
-    stage.style.backgroundImage = 'none';
-  }
 
   text.style.fontFamily = `"${style.fontFamily.replace(/"/g, '')}", "Segoe UI", Arial, sans-serif`;
   text.style.fontWeight = String(style.fontWeight);
@@ -82,6 +74,3 @@ export function fitLyricsText(stage: HTMLElement, text: HTMLElement, style: Lyri
   return scale;
 }
 
-function cssUrl(url: string): string {
-  return url.replace(/["\\\n\r]/g, (c) => encodeURIComponent(c));
-}

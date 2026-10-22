@@ -33,8 +33,6 @@ describe('URL validation', () => {
     expect(isAllowedImageUrl('data:text/html;base64,PHNjcmlwdD4=')).toBe(false);
     expect(isAllowedImageUrl('data:image/png;base64,<script>')).toBe(false);
     expect(isAllowedImageUrl('file:///C:/a.png')).toBe(false);
-    expect(isAllowedImageUrl('vrs-asset://local/abc-123.png')).toBe(true);
-    expect(isAllowedImageUrl('vrs-asset://local/../secret.png')).toBe(false);
   });
 });
 

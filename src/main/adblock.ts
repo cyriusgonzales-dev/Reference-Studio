@@ -36,6 +36,25 @@ const fetchViaNet: FetchLike = (url: string) => net.fetch(url) as unknown as Ret
 const COSMETIC_CHANNEL = '@ghostery/adblocker/inject-cosmetic-filters';
 const MUTATION_CHANNEL = '@ghostery/adblocker/is-mutation-observer-enabled';
 
+/**
+ * The library runs its page scripts with `executeJavaScript` without handling
+ * failures, which floods the log with unhandled rejections on busy pages. This
+ * gives it a sender whose script failures are ignored instead.
+ */
+function withQuietScripts(event: Electron.IpcMainInvokeEvent): Electron.IpcMainInvokeEvent {
+  const sender = event.sender;
+  const quietSender = new Proxy(sender, {
+    get(target, prop) {
+      if (prop === 'executeJavaScript') {
+        return (code: string, userGesture?: boolean) => target.executeJavaScript(code, userGesture).catch(() => undefined);
+      }
+      const value: unknown = Reflect.get(target, prop);
+      return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+    }
+  });
+  return Object.create(event, { sender: { value: quietSender } }) as Electron.IpcMainInvokeEvent;
+}
+
 function cosmeticPreloadPath(): string {
   return path.resolve(require.resolve('@ghostery/adblocker-electron-preload'));
 }
@@ -62,7 +81,7 @@ export class AdblockManager {
     // only ask for CSS to be injected into the requesting frame.
     ipcMain.handle(COSMETIC_CHANNEL, (event, url: unknown, msg: unknown) => {
       if (!this.blocker || !this.isFilteredSender(event.sender.session) || typeof url !== 'string') return;
-      return this.blocker.onInjectCosmeticFilters(event, url, msg as Parameters<ElectronBlocker['onInjectCosmeticFilters']>[2]);
+      return this.blocker.onInjectCosmeticFilters(withQuietScripts(event), url, msg as Parameters<ElectronBlocker['onInjectCosmeticFilters']>[2]);
     });
     ipcMain.handle(MUTATION_CHANNEL, (event) => {
       if (!this.blocker || !this.isFilteredSender(event.sender.session)) return false;

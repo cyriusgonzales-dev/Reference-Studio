@@ -1,110 +1,43 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bookmark, CircleHelp, Globe, ListVideo, Music, Settings as SettingsIcon } from 'lucide-react';
-import { Toasts } from './components/common';
-import { Sidebar } from './components/Sidebar';
-import { STATUS_LABEL } from './lib/format';
-import { useNotifications, useSnapshot } from './lib/stores';
-import { useShortcuts } from './lib/useShortcuts';
-import { BookmarksPage } from './pages/BookmarksPage';
-import { HelpPage } from './pages/HelpPage';
-import { LyricsPage } from './pages/LyricsPage';
-import { QueuePage } from './pages/QueuePage';
-import { ResearchPage } from './pages/ResearchPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { useEffect, useRef, useState } from 'react';
+import { OutputPanels } from './components/OutputPanels';
+import { SearchPanel } from './components/SearchPanel';
+import { run } from './lib/api';
+import { isEditableTarget } from './lib/format';
+import { useSnapshot } from './lib/stores';
 
-type Page = 'research' | 'lyrics' | 'queue' | 'bookmarks' | 'settings' | 'help';
-
-const NAV: Array<{ page: Page; label: string; icon: React.ReactNode }> = [
-  { page: 'research', label: 'Research', icon: <Globe size={20} /> },
-  { page: 'lyrics', label: 'Lyrics', icon: <Music size={20} /> },
-  { page: 'queue', label: 'Queue', icon: <ListVideo size={20} /> },
-  { page: 'bookmarks', label: 'Bookmarks', icon: <Bookmark size={20} /> }
-];
-
-function StatusBar() {
-  const snap = useSnapshot();
-  const notifications = useNotifications();
-  const latest = notifications[notifications.length - 1];
-  if (!snap) return <footer className="statusbar" />;
-  const { output, outputWindow, adblock, storageIssues } = snap;
-  return (
-    <footer className="statusbar">
-      <span className={`msg ${latest?.level ?? ''}`}>{latest?.message ?? (storageIssues[0] ? `⚠ ${storageIssues[0]}` : 'Ready')}</span>
-      <span>
-        Output: <b style={{ color: output.status === 'EMPTY' ? undefined : 'var(--live)' }}>{STATUS_LABEL[output.status]}</b>
-        {outputWindow.exists ? (outputWindow.visible ? '' : ' · hidden') : ' · window closed'}
-      </span>
-      <span>Ad block: {adblock.enabled ? (adblock.engine === 'ready' ? 'on' : adblock.engine) : 'off'}</span>
-      <span>Queue: {snap.queue.entries.length}</span>
-    </footer>
-  );
-}
-
+/** One window, three panels: search (1), player (2) and vMix output (3). */
 export function App() {
   const snap = useSnapshot();
-  const [page, setPage] = useState<Page>('research');
-  const [requestedSong, setRequestedSong] = useState<string | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
-  const addressRef = useRef<HTMLInputElement | null>(null);
-
-  const focusAddress = useCallback(() => {
-    setPage('research');
-    setFocusRequest((n) => n + 1);
-  }, []);
+  const lyricsActive = useRef(false);
+  lyricsActive.current = snap?.program.kind === 'lyrics';
 
   useEffect(() => {
-    if (focusRequest === 0) return;
-    const input = addressRef.current;
-    if (input) {
-      input.focus();
-      input.select();
-    }
-  }, [focusRequest, page]);
+    // Arrow keys step through lyrics while the app (not a web page or text box) has focus.
+    const onKey = (e: KeyboardEvent) => {
+      if (!lyricsActive.current || e.defaultPrevented || isEditableTarget(e.target) || e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        e.preventDefault();
+        run('program:lyrics', { command: 'next' });
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        run('program:lyrics', { command: 'previous' });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    const off = window.vrs.on('app:focusSearch', () => setFocusRequest((n) => n + 1));
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      off();
+    };
+  }, []);
 
-  useShortcuts(snap, focusAddress);
-
-  if (!snap) {
-    return <div className="empty">Starting…</div>;
-  }
-
-  const openSong = (songId: string) => {
-    setRequestedSong(songId);
-    setPage('lyrics');
-  };
+  if (!snap) return <div className="starting">Starting…</div>;
 
   return (
     <div className="app">
-      <nav className="rail" aria-label="Main navigation">
-        <div className="rail-logo" title="Vmix Reference Studio">
-          VRS
-        </div>
-        {NAV.map((n) => (
-          <button key={n.page} className={page === n.page ? 'active' : ''} onClick={() => setPage(n.page)} aria-current={page === n.page ? 'page' : undefined}>
-            {n.icon}
-            {n.label}
-          </button>
-        ))}
-        <div className="grow" />
-        <button className={page === 'help' ? 'active' : ''} onClick={() => setPage('help')}>
-          <CircleHelp size={20} />
-          Help
-        </button>
-        <button className={page === 'settings' ? 'active' : ''} onClick={() => setPage('settings')}>
-          <SettingsIcon size={20} />
-          Settings
-        </button>
-      </nav>
-
-      {page === 'research' ? <ResearchPage snap={snap} addressRef={addressRef} /> : null}
-      {page === 'lyrics' ? <LyricsPage snap={snap} requestedSongId={requestedSong} onRequestHandled={() => setRequestedSong(null)} /> : null}
-      {page === 'queue' ? <QueuePage snap={snap} /> : null}
-      {page === 'bookmarks' ? <BookmarksPage snap={snap} onOpenResearch={() => setPage('research')} /> : null}
-      {page === 'settings' ? <SettingsPage snap={snap} /> : null}
-      {page === 'help' ? <HelpPage snap={snap} /> : null}
-
-      <Sidebar snap={snap} onOpenSong={openSong} onOpenQueue={() => setPage('queue')} />
-      <StatusBar />
-      <Toasts />
+      <SearchPanel snap={snap} focusRequest={focusRequest} />
+      <OutputPanels snap={snap} />
     </div>
   );
 }
