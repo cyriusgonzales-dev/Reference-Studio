@@ -3,6 +3,7 @@ import path from 'node:path';
 import { ipcMain, net, type Session } from 'electron';
 import { ElectronBlocker } from '@ghostery/adblocker-electron';
 import type { AdblockLevel, AdblockStatus } from '../shared/types';
+import { isGooglePage } from '../shared/urls';
 
 /**
  * Request filtering for the remote browsing sessions using Ghostery's
@@ -55,6 +56,20 @@ function withQuietScripts(event: Electron.IpcMainInvokeEvent): Electron.IpcMainI
   return Object.create(event, { sender: { value: quietSender } }) as Electron.IpcMainInvokeEvent;
 }
 
+/**
+ * Google Search and Google Images are not filtered. The filter lists block
+ * Google's own interaction beacons (gen_204, client_204, /log); without them
+ * Google can mistake a real operator for a bot and show its "confirm you're
+ * human" check. Google's result pages carry few ads, so little is lost.
+ * YouTube and every other site remain filtered.
+ */
+function isFromGooglePage(details: { webContents?: Electron.WebContents }): boolean {
+  const wc = details.webContents;
+  if (!wc || wc.isDestroyed()) return false;
+  // The page the operator is on decides, not the host of each individual request.
+  return isGooglePage(wc.getURL());
+}
+
 function cosmeticPreloadPath(): string {
   return path.resolve(require.resolve('@ghostery/adblocker-electron-preload'));
 }
@@ -81,6 +96,7 @@ export class AdblockManager {
     // only ask for CSS to be injected into the requesting frame.
     ipcMain.handle(COSMETIC_CHANNEL, (event, url: unknown, msg: unknown) => {
       if (!this.blocker || !this.isFilteredSender(event.sender.session) || typeof url !== 'string') return;
+      if (isGooglePage(event.sender.getURL())) return;
       return this.blocker.onInjectCosmeticFilters(withQuietScripts(event), url, msg as Parameters<ElectronBlocker['onInjectCosmeticFilters']>[2]);
     });
     ipcMain.handle(MUTATION_CHANNEL, (event) => {
@@ -204,11 +220,11 @@ export class AdblockManager {
     const isActive = this.active.has(ses);
     if (enabled && !isActive) {
       ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
-        if (this.blocker && this.active.has(ses)) this.blocker.onBeforeRequest(details, callback);
+        if (this.blocker && this.active.has(ses) && !isFromGooglePage(details)) this.blocker.onBeforeRequest(details, callback);
         else callback({});
       });
       ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, (details, callback) => {
-        if (this.blocker && this.active.has(ses)) this.blocker.onHeadersReceived(details, callback);
+        if (this.blocker && this.active.has(ses) && !isFromGooglePage(details)) this.blocker.onHeadersReceived(details, callback);
         else callback({});
       });
       const preloadId = ses.registerPreloadScript({ type: 'frame', filePath: cosmeticPreloadPath() });

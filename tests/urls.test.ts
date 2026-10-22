@@ -119,3 +119,17 @@ describe('Google Images helpers', () => {
     expect(titleFromImageUrl('data:image/png;base64,AAAA')).toBe('Embedded image');
   });
 });
+
+describe('Google pages exempt from ad blocking', () => {
+  it('matches Google Search and Images on local domains only', async () => {
+    const { isGooglePage } = await import('../src/shared/urls');
+    expect(isGooglePage('https://www.google.com/search?q=lion&udm=2')).toBe(true);
+    expect(isGooglePage('https://www.google.com.ph/search?q=x')).toBe(true);
+    expect(isGooglePage('https://www.google.co.uk/')).toBe(true);
+    expect(isGooglePage('https://adservice.google.com/ddm')).toBe(false);
+    expect(isGooglePage('https://www.youtube.com/results?search_query=x')).toBe(false);
+    expect(isGooglePage('https://google.com.evil.example/')).toBe(false);
+    expect(isGooglePage('https://wwwxgooglexcom/')).toBe(false);
+    expect(isGooglePage('not a url')).toBe(false);
+  });
+});

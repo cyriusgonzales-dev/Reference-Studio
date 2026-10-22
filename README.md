@@ -27,7 +27,7 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 - Panel 3 always mirrors panel 2. Anything you click in panel 1 is shown immediately.
 - Sound comes from panel 3 only (panel 2 is muted), so there is no double audio. Volume and mute changes in panel 2 are copied to panel 3.
 - Each tab keeps its own history while the app runs, and reopens on its last page next time.
-- The shield at the bottom left turns ad blocking on and off. If a page or video misbehaves, try turning it off.
+- The shield at the bottom left turns ad blocking on and off. If a page or video misbehaves, try turning it off. Google Search and Images pages are never filtered: blocking Google's own background requests makes Google more likely to show its "confirm you're human" check.
 
 ### Keyboard shortcuts
 
@@ -81,6 +81,8 @@ If you run `npm run dev` from a VS Code terminal and Electron starts as plain No
 - Settings live in `%APPDATA%\Vmix Reference Studio\data\settings.json`, with an automatic backup and recovery if the file is damaged.
 
 ## Known limitations
+
+- Google may still ask you to confirm you're human, for example after many quick searches or when many people share one internet connection. Complete it once in the tab; the app keeps Google's cookies, so it should not come back often. Signing in to a Google account in the Images or Lyrics tab makes it rarer. The app does not bypass this check.
 
 - Some YouTube videos cannot be played outside YouTube: embedding disabled by the owner, age or sign-in restrictions, region locks, or removed videos. The app shows the reason in panel 2; use **YouTube** to open it in your browser.
 - Panel 3 hides YouTube's player overlays at the operator's request; YouTube's embed terms ask that they stay visible. Graphics burned into a video itself (for example a song-title banner) cannot be removed.

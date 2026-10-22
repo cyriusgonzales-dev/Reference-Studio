@@ -230,3 +230,9 @@ export function titleFromImageUrl(input: string): string {
 export function hostnameOf(input: string): string {
   return parseHttpUrl(input)?.hostname ?? '';
 }
+
+/** Google Search / Images pages (google.com, google.com.ph, google.co.uk, …), but not YouTube or other Google services. */
+export function isGooglePage(url: string): boolean {
+  const host = parseHttpUrl(url)?.hostname.toLowerCase() ?? '';
+  return /^(www\.)?google\.(com|[a-z]{2})(\.[a-z]{2})?$/.test(host) || /^(www\.)?google\.co\.[a-z]{2}$/.test(host);
+}
