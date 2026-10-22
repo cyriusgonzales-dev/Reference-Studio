@@ -1,0 +1,42 @@
+# Windows packaging. Builds are unsigned unless signing credentials are
+# provided through electron-builder's standard environment variables (never commit them).
+appId: app.vmix-reference-studio
+productName: Vmix Reference Studio
+copyright: Copyright © 2026
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - "!**/*.map"
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Vmix Reference Studio
+  artifactName: Vmix-Reference-Studio-Setup-${version}.${ext}
+portable:
+  artifactName: Vmix-Reference-Studio-${version}-portable.${ext}
+# Electron fuses harden the shipped binary:
+#  - it cannot be started as a plain Node.js runtime (ELECTRON_RUN_AS_NODE)
+#  - NODE_OPTIONS and --inspect are ignored
+#  - only the integrity-checked app.asar is loaded
+# grantFileProtocolExtraPrivileges stays enabled because the app's own pages load from file://.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: true

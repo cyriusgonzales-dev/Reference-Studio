@@ -284,11 +284,22 @@ export class OutputController {
     this.host.onChange();
   }
 
-  /** Called when monitors change; moves the output to the best available display. */
+  /**
+   * Called when monitors change. Windows also reports trivial changes (for
+   * example the taskbar auto-hiding), so the output is only repositioned when
+   * its target display or that display's geometry actually changed; otherwise
+   * a live show would flicker out of and back into full screen.
+   */
   onDisplaysChanged(): void {
     const win = this.liveWindow();
     if (!win) return;
     const before = this.placement;
+    const next = this.chooseDisplay();
+    if (before && next && !displayMoved(before.display, next.display)) {
+      this.placement = next;
+      this.host.onChange();
+      return;
+    }
     this.place();
     const after = this.placement;
     if (before && after && before.display.id !== after.display.id) {
@@ -420,16 +431,21 @@ export class OutputController {
     return win;
   }
 
+  private chooseDisplay(): DisplayChoice | null {
+    const settings = this.host.settings().output;
+    return chooseOutputDisplay(
+      this.host.displays(),
+      { displayId: settings.displayId, displayLabel: settings.displayLabel },
+      this.host.mainDisplayId()
+    );
+  }
+
   /** Positions the window on the chosen display, full screen or windowed. */
   private place(): void {
     const win = this.liveWindow();
     if (!win) return;
     const settings = this.host.settings().output;
-    const choice = chooseOutputDisplay(
-      this.host.displays(),
-      { displayId: settings.displayId, displayLabel: settings.displayLabel },
-      this.host.mainDisplayId()
-    );
+    const choice = this.chooseDisplay();
     if (!choice) return;
     this.placement = choice;
     const display = choice.display;
@@ -456,6 +472,17 @@ export class OutputController {
     const win = this.liveWindow();
     if (win) win.destroy();
   }
+}
+
+function displayMoved(a: DisplayInfo, b: DisplayInfo): boolean {
+  return (
+    a.id !== b.id ||
+    a.scaleFactor !== b.scaleFactor ||
+    a.bounds.x !== b.bounds.x ||
+    a.bounds.y !== b.bounds.y ||
+    a.bounds.width !== b.bounds.width ||
+    a.bounds.height !== b.bounds.height
+  );
 }
 
 function windowedBounds(area: Rect): Rect {
