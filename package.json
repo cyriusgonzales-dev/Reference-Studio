@@ -1,7 +1,7 @@
 {
   "name": "vmix-reference-studio",
   "productName": "Vmix Reference Studio",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Three-panel research and presentation app (search, player, vMix output) for live webinars.",
   "main": "./out/main/index.js",
   "author": "Vmix Reference Studio",

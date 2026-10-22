@@ -9,8 +9,9 @@ import { isYouTubeHost, parseHttpUrl, youtubeEmbedUrl, youtubeWatchUrl } from '.
  *
  * Playback uses YouTube's official embedded player. The request carries an
  * HTTP Referer identifying this application, as YouTube requires for embeds
- * outside a website. The player itself (branding, controls) is never altered;
- * in the watch-page fallback only the surrounding page is hidden.
+ * outside a website. The operator player (panel 2) is never altered;
+ * in the watch-page fallback only the surrounding page is hidden. The output
+ * copy (panel 3) is reduced to the video picture; see VIDEO_ONLY_CSS.
  */
 
 export const APP_REFERRER = 'https://vmix-reference-studio.app/';
@@ -58,6 +59,24 @@ ytd-mini-guide-renderer, #guide, ytd-popup-container, #chat, ytd-merch-shelf-ren
 `;
 
 const HIDE_CURSOR_CSS = `*, *::before, *::after { cursor: none !important; }`;
+
+/**
+ * Panel 3 (vMix output) shows only the video picture. Everything on the page
+ * is made invisible and only <video> is made visible again (visibility can be
+ * re-enabled on a child of a hidden element), so the title bar, controls,
+ * play/pause indicator, "More videos", captions, end screen, spinner and
+ * branding never appear, whatever layout or class names YouTube uses. Layout
+ * is unaffected, so the video keeps its size and position.
+ *
+ * Note: YouTube's embed terms ask that player controls and branding stay
+ * visible; this is applied at the operator's request and only to the output
+ * copy. Panel 2 keeps the full player.
+ */
+const VIDEO_ONLY_CSS = `
+html, body { background: #000 !important; }
+body * { visibility: hidden !important; }
+video { visibility: visible !important; }
+`;
 
 export interface YouTubeViewOptions {
   /** Operator player: YouTube controls shown. Output player: no controls, no cursor. */
@@ -115,7 +134,10 @@ export class YouTubeView {
     });
     wc.on('dom-ready', () => {
       if (mode === 'watch') void wc.insertCSS(WATCH_PAGE_CSS).catch(() => undefined);
-      if (options.role === 'output') void wc.insertCSS(HIDE_CURSOR_CSS).catch(() => undefined);
+      if (options.role === 'output') {
+        void wc.insertCSS(HIDE_CURSOR_CSS).catch(() => undefined);
+        void wc.insertCSS(VIDEO_ONLY_CSS).catch(() => undefined);
+      }
     });
     // Keep video inside its panel: a full-screen request would take over the whole window.
     wc.on('enter-html-full-screen', () => {

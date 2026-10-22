@@ -20,7 +20,7 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 | Tab | What you do | What happens |
 | --- | --- | --- |
 | **Images** | Search, then **click any image**. | It appears in panels 2 and 3. Click another image to replace it. If Google opens the full-size version, the panels switch to it automatically. The results page never moves. |
-| **YouTube** | Search, then **click a video**. | It plays in panel 2 with YouTube's normal controls (play, pause, seek, volume, speed, captions). Panel 3 plays the same video in sync, without controls. The results stay in the tab. |
+| **YouTube** | Search, then **click a video**. | It plays in panel 2 with YouTube's normal controls (play, pause, seek, volume, speed, captions). Panel 3 plays the same video in sync and shows **only the video picture**: no title, controls, play/pause indicator or "More videos". The results stay in the tab. |
 | **Lyrics** | Type the song title (the app adds "lyrics" to the Google search), then **highlight the lyrics with the mouse**. | The highlighted text becomes slides (up to 4 lines each), shown in panels 2 and 3. Use ← → (or the numbered buttons) to change slides, and − / + / AA for text size and uppercase. If the highlight did not register, click **Use highlighted text**. |
 
 - **Black** (top right of panel 2, or **Ctrl+Shift+B**) clears panels 2 and 3 to black.
@@ -83,6 +83,7 @@ If you run `npm run dev` from a VS Code terminal and Electron starts as plain No
 ## Known limitations
 
 - Some YouTube videos cannot be played outside YouTube: embedding disabled by the owner, age or sign-in restrictions, region locks, or removed videos. The app shows the reason in panel 2; use **YouTube** to open it in your browser.
+- Panel 3 hides YouTube's player overlays at the operator's request; YouTube's embed terms ask that they stay visible. Graphics burned into a video itself (for example a song-title banner) cannot be removed.
 - Panel 3 is a separate synced player, so after a seek it can take a fraction of a second to line up with panel 2.
 - Ad blocking reduces but cannot guarantee removal of all ads, especially on YouTube.
 - Google and YouTube change their pages often. If clicking an image or video stops being picked up, right-click it and use **Show this image** / **Play this video**.
