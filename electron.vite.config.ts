@@ -1,0 +1,59 @@
+import { resolve } from 'node:path';
+import { defineConfig } from 'electron-vite';
+import type { Plugin } from 'vite';
+import react from '@vitejs/plugin-react';
+
+/**
+ * The renderer HTML files carry a strict Content-Security-Policy. The Vite dev
+ * server needs an inline React Refresh preamble and a websocket for HMR, so the
+ * policy is relaxed only while serving in development.
+ */
+function devCspRelaxation(): Plugin {
+  let isServe = false;
+  return {
+    name: 'vrs-dev-csp',
+    configResolved(config) {
+      isServe = config.command === 'serve';
+    },
+    transformIndexHtml(html) {
+      if (!isServe) return html;
+      return html
+        .replace("script-src 'self'", "script-src 'self' 'unsafe-inline'")
+        .replace("connect-src 'self'", "connect-src 'self' ws: http://localhost:*");
+    }
+  };
+}
+
+export default defineConfig({
+  main: {
+    build: {
+      rollupOptions: {
+        input: { index: resolve(__dirname, 'src/main/index.ts') }
+      }
+    }
+  },
+  preload: {
+    build: {
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'src/preload/main.ts'),
+          output: resolve(__dirname, 'src/preload/output.ts')
+        },
+        output: { format: 'cjs', entryFileNames: '[name].cjs' }
+      }
+    }
+  },
+  renderer: {
+    root: resolve(__dirname, 'src/renderer'),
+    plugins: [react(), devCspRelaxation()],
+    build: {
+      minify: 'esbuild',
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          output: resolve(__dirname, 'src/renderer/output.html')
+        }
+      }
+    }
+  }
+});
