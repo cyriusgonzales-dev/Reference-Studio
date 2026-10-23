@@ -21,8 +21,9 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 | --- | --- | --- |
 | **Images** | Search, then **click any image**. | It appears in panels 2 and 3. Click another image to replace it. If Google opens the full-size version, the panels switch to it automatically. The results page never moves. |
 | **YouTube** | Search, then **click a video**. | It plays in panel 2 with YouTube's normal controls (play, pause, seek, volume, speed, captions). Panel 3 plays the same video in sync and shows **only the video picture**: no title, controls, play/pause indicator or "More videos". The results stay in the tab. |
-| **Lyrics** | Type the song title (the app adds "lyrics" to the Google search), then **highlight the lyrics with the mouse**. | The highlighted text becomes slides (up to 4 lines each), shown in panels 2 and 3. Use ← → (or the numbered buttons) to change slides, and − / + / AA for text size and uppercase. If the highlight did not register, click **Use highlighted text**. |
+| **Lyrics** | Type the song title (the app adds "song lyrics" to the Google search so the lyrics come first), then **highlight the lyrics with the mouse**. | The highlighted text becomes slides (up to 4 lines each), shown in panels 2 and 3. Use ← → (or the numbered buttons) to change slides, and − / + / AA for text size and uppercase. If the highlight did not register, click **Use highlighted text**. |
 
+- **One search, all three tabs:** whatever you search in any tab is searched in Images, YouTube and Lyrics at the same time, so switching tabs shows results for the same words. A typed web address opens only in the current tab.
 - **Black** (top right of panel 2, or **Ctrl+Shift+B**) clears panels 2 and 3 to black.
 - Panel 3 always mirrors panel 2. Anything you click in panel 1 is shown immediately.
 - Sound comes from panel 3 only (panel 2 is muted), so there is no double audio. Volume and mute changes in panel 2 are copied to panel 3.

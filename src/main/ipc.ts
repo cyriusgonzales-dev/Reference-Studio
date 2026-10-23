@@ -27,7 +27,7 @@ export function registerIpc(c: Controller, window: BrowserWindow): void {
     },
     'tab:select': ({ tab }) => c.selectTab(tab),
     'tab:navigate': ({ tab, input }) => {
-      c.tabs.navigateInput(tab, input);
+      c.tabs.searchAll(tab, input);
       c.tabs.webContents(tab)?.focus();
     },
     'tab:command': ({ tab, command }) => c.tabs.command(tab, command),

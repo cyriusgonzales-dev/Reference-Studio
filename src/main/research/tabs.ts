@@ -1,7 +1,7 @@
 import { WebContentsView, type BrowserWindow, type Session, type WebContents } from 'electron';
 import { HOME_URLS } from '../../shared/settings';
 import { TAB_IDS, type Rect, type TabId, type TabState } from '../../shared/types';
-import { hostnameOf, isHttpUrl, parseYouTubeVideo, resolveAddressInput } from '../../shared/urls';
+import { hostnameOf, isHttpUrl, looksLikeUrl, parseYouTubeVideo, resolveAddressInput } from '../../shared/urls';
 import { buildResearchContextMenu, type ResearchMenuActions } from './contextMenu';
 
 /**
@@ -200,11 +200,26 @@ export class ResearchTabs {
     }
   }
 
+  /**
+   * Runs typed search terms in all three tabs at once (Google Images, YouTube, Google lyrics).
+   * A typed web address opens only in the tab it was typed in.
+   */
+  searchAll(tab: TabId, input: string): void {
+    if (looksLikeUrl(input.trim())) {
+      this.navigateInput(tab, input);
+      return;
+    }
+    // The tab the operator typed in goes first so its errors are the ones reported.
+    this.navigateInput(tab, input);
+    for (const other of TAB_IDS) if (other !== tab) this.navigateInput(other, input);
+  }
+
   /** Turns typed text into a URL for the tab: a search on Google Images, YouTube or Google (lyrics). */
   navigateInput(tab: TabId, input: string): void {
     let text = input.trim();
-    if (tab === 'lyrics' && text && !/lyrics/i.test(text) && !/^[a-z]+:\/\//i.test(text) && !/\.[a-z]{2,}(\/|$)/i.test(text)) {
-      text = `${text} lyrics`;
+    // "song lyrics" makes Google put the lyrics box first instead of videos or news.
+    if (tab === 'lyrics' && text && !/lyrics/i.test(text) && !looksLikeUrl(text)) {
+      text = `${text} song lyrics`;
     }
     const mode = tab === 'images' ? 'images' : tab === 'youtube' ? 'youtube' : 'web';
     const url = resolveAddressInput(text, mode, 'google');

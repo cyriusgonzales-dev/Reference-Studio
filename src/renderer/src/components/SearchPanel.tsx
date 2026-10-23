@@ -11,21 +11,21 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode; placeholder
     id: 'images',
     label: 'Images',
     icon: <ImageIcon size={20} />,
-    placeholder: 'Search Google Images…',
+    placeholder: 'Search Images, YouTube and Lyrics together…',
     hint: 'Click any image to show it in panels 2 and 3. Click another to replace it.'
   },
   {
     id: 'youtube',
     label: 'YouTube',
     icon: <SquarePlay size={20} />,
-    placeholder: 'Search YouTube…',
+    placeholder: 'Search YouTube, Images and Lyrics together…',
     hint: 'Click a video to play it in panel 2. These results stay here.'
   },
   {
     id: 'lyrics',
     label: 'Lyrics',
     icon: <Music size={20} />,
-    placeholder: 'Song title (searches Google lyrics)…',
+    placeholder: 'Song title — searches Lyrics, Images and YouTube together…',
     hint: 'Search a song, then highlight the lyrics on the page with the mouse to show them.'
   }
 ];
@@ -49,12 +49,13 @@ export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRe
 
   // Show the search terms of the current results page; the operator's own typing wins while editing.
   const pageQuery = extractSearchQuery(state.url);
-  const shown = drafts[tab] ?? (pageQuery ? pageQuery.replace(/\s+lyrics$/i, '') : state.url);
+  const shown = drafts[tab] ?? (pageQuery ? pageQuery.replace(/\s+(song\s+)?lyrics$/i, '') : state.url);
 
   const go = () => {
     const input = (drafts[tab] ?? shown).trim();
     if (!input) return;
-    setDrafts((d) => ({ ...d, [tab]: null }));
+    // Every tab runs the same search, so every tab shows its new results' query.
+    setDrafts({ images: null, youtube: null, lyrics: null });
     call('tab:navigate', { tab, input }).catch((e: Error) => notify('error', e.message));
   };
 
