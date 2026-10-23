@@ -1,5 +1,5 @@
 import { MAX_LYRICS_TEXT } from './lyrics';
-import { hostnameOf, parseHttpUrl } from './urls';
+import { hostnameOf, looksLikeUrl, parseHttpUrl } from './urls';
 
 /**
  * Research text handling: turning text highlighted on a web page into slides,
@@ -37,6 +37,18 @@ export interface ResearchPageInfo {
   result: { href: string; title: string } | null;
 }
 
+/**
+ * The Research tab's Google search: "definition" is added so Google puts a
+ * definition first. Questions and searches that already say what they want
+ * are left alone.
+ */
+export function researchQuery(input: string): string {
+  const text = input.trim();
+  if (!text || looksLikeUrl(text)) return text;
+  if (/\b(definitions?|define|meaning|research|what|who|when|where|why|how)\b/i.test(text) || text.endsWith('?')) return text;
+  return `${text} definition`;
+}
+
 /** A slide holds at most this many characters unless a single sentence is longer. */
 export const MAX_RESEARCH_SLIDE_CHARS = 240;
 
@@ -69,6 +81,7 @@ const KNOWN_PUBLISHERS: Record<string, string> = {
   'space.com': 'Space.com',
   'livescience.com': 'Live Science',
   'merriam-webster.com': 'Merriam-Webster',
+  'oup.com': 'Oxford Languages',
   'harvard.edu': 'Harvard University',
   'mit.edu': 'MIT',
   'stanford.edu': 'Stanford University',

@@ -2,6 +2,7 @@ import { WebContentsView, type BrowserWindow, type Session, type WebContents } f
 import { HOME_URLS } from '../../shared/settings';
 import { TAB_IDS, type Rect, type TabId, type TabState } from '../../shared/types';
 import { hostnameOf, isHttpUrl, looksLikeUrl, parseYouTubeVideo, resolveAddressInput } from '../../shared/urls';
+import { researchQuery } from '../../shared/research';
 import { buildResearchContextMenu, type ResearchMenuActions } from './contextMenu';
 
 /**
@@ -231,6 +232,7 @@ export class ResearchTabs {
     if (tab === 'lyrics' && text && !/lyrics/i.test(text) && !looksLikeUrl(text)) {
       text = `${text} song lyrics`;
     }
+    if (tab === 'research') text = researchQuery(text);
     const mode = tab === 'images' ? 'images' : tab === 'youtube' ? 'youtube' : 'web';
     const url = resolveAddressInput(text, mode, 'google');
     if (!url) throw new Error('That address cannot be opened. Only web (http/https) addresses are allowed.');

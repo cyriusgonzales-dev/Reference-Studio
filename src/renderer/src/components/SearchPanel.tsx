@@ -56,7 +56,7 @@ export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRe
 
   // Show the search terms of the current results page; the operator's own typing wins while editing.
   const pageQuery = extractSearchQuery(state.url);
-  const shown = drafts[tab] ?? (pageQuery ? pageQuery.replace(/\s+(song\s+)?lyrics$/i, '') : state.url);
+  const shown = drafts[tab] ?? (pageQuery ? pageQuery.replace(/\s+((song\s+)?lyrics|definition)$/i, '') : state.url);
 
   const go = () => {
     const input = (drafts[tab] ?? shown).trim();

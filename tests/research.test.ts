@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatSourceDate,
   formatSourceLine,
+  researchQuery,
   researchToSlides,
   resolveResearchSource,
   sourceTrust,
@@ -59,6 +60,24 @@ describe('research sources', () => {
     expect(fromResult).toMatchObject({ publisher: 'Encyclopaedia Britannica', title: 'Big-bang model', date: null, fromSearchPage: true });
     expect(fromResult?.url).toBe('https://www.britannica.com/science/big-bang-model');
     expect(resolveResearchSource(page({ url: 'https://www.google.com/search?q=big+bang' }))).toBeNull();
+  });
+
+  it('credits Google’s dictionary box to Oxford Languages', () => {
+    const source = resolveResearchSource(
+      page({
+        url: 'https://www.google.com/search?q=big+bang+definition',
+        result: { href: 'https://languages.oup.com/google-dictionary-en/', title: 'big bang' }
+      })
+    );
+    expect(formatSourceLine(source!)).toBe('Source: Oxford Languages · big bang');
+    expect(source?.trust).toBe('official');
+  });
+
+  it('adds "definition" to research searches unless the search already says what it wants', () => {
+    expect(researchQuery('big bang')).toBe('big bang definition');
+    expect(researchQuery('what is the big bang')).toBe('what is the big bang');
+    expect(researchQuery('big bang meaning')).toBe('big bang meaning');
+    expect(researchQuery('nasa.gov')).toBe('nasa.gov');
   });
 
   it('rates sites by their address', () => {

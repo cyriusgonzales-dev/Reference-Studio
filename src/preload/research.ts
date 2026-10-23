@@ -225,6 +225,11 @@ function structuredData(): { headline: string; publisher: string; published: str
 function googleResultFor(selection: Selection): { href: string; title: string } | null {
   let el: Element | null = selection.anchorNode instanceof Element ? selection.anchorNode : (selection.anchorNode?.parentElement ?? null);
   for (let depth = 0; el && depth < 12; depth++, el = el.parentElement) {
+    // Google's dictionary box credits its definitions to Oxford Languages and links to it.
+    const dictionary = el.querySelector<HTMLAnchorElement>('a[href*="languages.oup.com"]');
+    if (dictionary && isWebUrl(dictionary.href)) {
+      return { href: dictionary.href.slice(0, 8000), title: trimmed(el.querySelector('[data-dobid="hdw"]')?.textContent) };
+    }
     const links = Array.from(el.querySelectorAll('a[href]')).filter((a) => a.querySelector('h3'));
     if (links.length === 0) continue;
     // A block holding several results (or Google's AI overview) cannot be attributed to one source.
