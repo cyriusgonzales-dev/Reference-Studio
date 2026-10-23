@@ -212,6 +212,17 @@ function externalLinks(block: Element): HTMLAnchorElement[] {
   return Array.from(block.querySelectorAll<HTMLAnchorElement>('a[href]')).filter((a) => isWebUrl(a.href) && !isGoogleHost(linkHost(a)));
 }
 
+/**
+ * Google's AI overview, recognised by its markup rather than its heading, which
+ * is translated ("AI Overview", "AI na Overview"). It is always kept: it lists
+ * its sources (videos among them), so it can look like a video strip.
+ */
+const AI_OVERVIEW = '#m-x-content, [data-subtree="mfc"], [data-attnms]';
+
+function holdsAiOverview(block: Element): boolean {
+  return block.matches(AI_OVERVIEW) || !!block.querySelector(AI_OVERVIEW);
+}
+
 /** Google labels video and social results with the platform's name ("YouTube · Channel"), in every language. */
 const PLATFORM_LABEL = /(YouTube|TikTok|Facebook|Instagram)\s*·/;
 
@@ -259,7 +270,8 @@ function filterLyricsResults(): void {
   for (const block of Array.from(results.children)) {
     const isWebResult = !!block.querySelector('a[href] h3');
     let hide: boolean;
-    if (!seenWebResult && !isWebResult) hide = isMediaBlock(block);
+    if (holdsAiOverview(block)) hide = false;
+    else if (!seenWebResult && !isWebResult) hide = isMediaBlock(block);
     else hide = !(isWebResult && isLyricsResult(block));
     if (isWebResult) seenWebResult = true;
     block.classList.toggle(HIDDEN_CLASS, hide);
