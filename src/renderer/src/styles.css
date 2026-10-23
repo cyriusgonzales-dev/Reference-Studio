@@ -47,6 +47,9 @@ button, input { font: inherit; color: inherit; }
 .chip { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--bg-elev-2); border: 1px solid var(--border); color: var(--text-dim); font-size: 11.5px; white-space: nowrap; }
 .chip.live { color: #fff; background: var(--live); border-color: var(--live); }
 .chip.err { color: #fca5a5; border-color: #5b2a2a; }
+.chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.controls.source-row { height: 34px; margin-top: -6px; }
 .grow { flex: 1; }
 .muted { color: var(--text-dim); }
 .faint { color: var(--text-faint); }

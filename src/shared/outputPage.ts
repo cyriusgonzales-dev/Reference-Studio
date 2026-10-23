@@ -12,7 +12,7 @@ export const OUTPUT_READY_CHANNEL = 'outputpage:ready';
 export type OutputPageState =
   | { kind: 'black'; rev: number }
   | { kind: 'image'; rev: number; url: string; fallbackUrl: string | null }
-  | { kind: 'lyrics'; rev: number; text: string; style: LyricsStyle };
+  | { kind: 'lyrics'; rev: number; text: string; style: LyricsStyle; source: string | null };
 
 export interface OutputPageApi {
   onRender(listener: (state: OutputPageState) => void): void;

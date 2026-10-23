@@ -1,8 +1,8 @@
 import { ipcRenderer } from 'electron';
-import { RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL } from '../shared/researchChannels';
+import { RESEARCH_COLLECT_CHANNEL, RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL } from '../shared/researchChannels';
 
 /**
- * Runs in the isolated world of every page shown in the three search tabs.
+ * Runs in the isolated world of every page shown in the four search tabs.
  * It exposes nothing to the page. It only watches for genuine operator input
  * (event.isTrusted, so pages cannot fake clicks) and reports:
  *
@@ -11,11 +11,13 @@ import { RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL } from '../shared/research
  *  - YouTube tab: a clicked video link. The click is cancelled so the search
  *                 results stay open; the video plays in panel 2 instead.
  *  - Lyrics tab:  highlighted text.
+ *  - Research tab: highlighted text, with the source details the page itself
+ *                 declares (publisher, title, publication date).
  *
  * The main process validates every message and decides what to do with it.
  */
 
-type Role = 'images' | 'youtube' | 'lyrics' | '';
+type Role = 'images' | 'youtube' | 'lyrics' | 'research' | '';
 
 // Only the top-level page is handled; ads and other embedded frames are ignored.
 const role: Role = window.top === window ? (ipcRenderer.sendSync(RESEARCH_ROLE_CHANNEL) as Role) : '';
@@ -179,6 +181,106 @@ function reportSelection(event: Event): void {
 }
 
 /* ------------------------------------------------------------------ */
+/* Research                                                            */
+/* ------------------------------------------------------------------ */
+
+const trimmed = (value: string | null | undefined, max = 500) => (value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+
+function metaContent(...selectors: string[]): string {
+  for (const selector of selectors) {
+    const value = document.querySelector<HTMLMetaElement>(selector)?.content;
+    if (value && value.trim()) return trimmed(value);
+  }
+  return '';
+}
+
+/** The first schema.org object (JSON-LD) on the page that describes an article or web page. */
+function structuredData(): { headline: string; publisher: string; published: string; modified: string } {
+  const result = { headline: '', publisher: '', published: '', modified: '' };
+  const visit = (node: unknown, depth: number): void => {
+    if (depth > 6 || !node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item, depth + 1);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    if (!result.headline && typeof obj.headline === 'string') result.headline = trimmed(obj.headline);
+    if (!result.published && typeof obj.datePublished === 'string') result.published = trimmed(obj.datePublished, 100);
+    if (!result.modified && typeof obj.dateModified === 'string') result.modified = trimmed(obj.dateModified, 100);
+    const publisher = obj.publisher as Record<string, unknown> | undefined;
+    if (!result.publisher && publisher && typeof publisher === 'object' && typeof publisher.name === 'string') result.publisher = trimmed(publisher.name);
+    if (obj['@graph']) visit(obj['@graph'], depth + 1);
+  };
+  for (const script of Array.from(document.querySelectorAll('script[type="application/ld+json"]')).slice(0, 10)) {
+    try {
+      visit(JSON.parse(script.textContent ?? ''), 0);
+    } catch {
+      // malformed JSON-LD is ignored
+    }
+  }
+  return result;
+}
+
+/** On a Google results page: the single result that contains the highlighted text, if any. */
+function googleResultFor(selection: Selection): { href: string; title: string } | null {
+  let el: Element | null = selection.anchorNode instanceof Element ? selection.anchorNode : (selection.anchorNode?.parentElement ?? null);
+  for (let depth = 0; el && depth < 12; depth++, el = el.parentElement) {
+    const links = Array.from(el.querySelectorAll('a[href]')).filter((a) => a.querySelector('h3'));
+    if (links.length === 0) continue;
+    // A block holding several results (or Google's AI overview) cannot be attributed to one source.
+    if (links.length > 1) return null;
+    const link = links[0] as HTMLAnchorElement;
+    if (!isWebUrl(link.href)) return null;
+    return { href: link.href.slice(0, 8000), title: trimmed(link.querySelector('h3')?.textContent) };
+  }
+  return null;
+}
+
+function pageInfo(selection: Selection | null) {
+  const data = structuredData();
+  const firstTime = document.querySelector('article time[datetime], main time[datetime]')?.getAttribute('datetime');
+  return {
+    url: location.href.slice(0, 8000),
+    documentTitle: trimmed(document.title),
+    title: metaContent('meta[name="citation_title"]', 'meta[property="og:title"]', 'meta[name="twitter:title"]') || data.headline,
+    siteName: metaContent('meta[property="og:site_name"]', 'meta[name="application-name"]'),
+    publisher: data.publisher || metaContent('meta[name="citation_publisher"]', 'meta[name="citation_journal_title"]', 'meta[name="DC.publisher"]'),
+    published: trimmed(
+      metaContent(
+        'meta[name="citation_publication_date"]',
+        'meta[name="citation_date"]',
+        'meta[property="article:published_time"]',
+        'meta[name="article:published_time"]',
+        'meta[itemprop="datePublished"]',
+        'meta[name="DC.date.issued"]',
+        'meta[name="dcterms.date"]',
+        'meta[name="date"]'
+      ) ||
+        data.published ||
+        firstTime,
+      100
+    ),
+    modified: trimmed(metaContent('meta[property="article:modified_time"]', 'meta[property="og:updated_time"]', 'meta[itemprop="dateModified"]') || data.modified, 100),
+    result: selection && isGoogleHost(location.hostname) ? googleResultFor(selection) : null
+  };
+}
+
+let lastResearch = '';
+
+function sendResearch(explicit: boolean): void {
+  const selection = window.getSelection();
+  const text = selection?.toString() ?? '';
+  if (!explicit && (text.trim().length < 15 || text === lastResearch)) return;
+  lastResearch = text;
+  send({ type: 'research', text: text.slice(0, 20000), explicit, page: pageInfo(selection) });
+}
+
+function reportResearch(event: Event): void {
+  if (!event.isTrusted) return;
+  window.setTimeout(() => sendResearch(false), 120);
+}
+
+/* ------------------------------------------------------------------ */
 
 if (role === 'images') {
   window.addEventListener('click', onImageClick, true);
@@ -189,4 +291,11 @@ if (role === 'images') {
   window.addEventListener('keyup', (e) => {
     if (e.shiftKey || e.key === 'Shift') reportSelection(e);
   }, true);
+} else if (role === 'research') {
+  window.addEventListener('mouseup', reportResearch, true);
+  window.addEventListener('keyup', (e) => {
+    if (e.shiftKey || e.key === 'Shift') reportResearch(e);
+  }, true);
+  // The operator pressed "Use highlighted text" or used the right-click menu.
+  ipcRenderer.on(RESEARCH_COLLECT_CHANNEL, () => sendResearch(true));
 }

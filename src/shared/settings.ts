@@ -21,7 +21,8 @@ export interface Settings {
 export const HOME_URLS: Record<TabId, string> = {
   images: 'https://www.google.com/imghp',
   youtube: 'https://www.youtube.com/',
-  lyrics: 'https://www.google.com/'
+  lyrics: 'https://www.google.com/',
+  research: 'https://www.google.com/'
 };
 
 export function defaultSettings(): Settings {
@@ -40,9 +41,9 @@ const url = (fallback: string) => z.string().max(4096).refine(isHttpUrl).catch(f
 
 export const settingsSchema = z.object({
   version: z.literal(2).catch(2),
-  activeTab: z.enum(['images', 'youtube', 'lyrics']).catch(D.activeTab),
+  activeTab: z.enum(['images', 'youtube', 'lyrics', 'research']).catch(D.activeTab),
   tabUrls: z
-    .object({ images: url(HOME_URLS.images), youtube: url(HOME_URLS.youtube), lyrics: url(HOME_URLS.lyrics) })
+    .object({ images: url(HOME_URLS.images), youtube: url(HOME_URLS.youtube), lyrics: url(HOME_URLS.lyrics), research: url(HOME_URLS.research) })
     .catch(D.tabUrls),
   lyricsScale: z.number().min(0.4).max(2.5).catch(1),
   lyricsUppercase: z.boolean().catch(false),
@@ -74,10 +75,19 @@ export const LYRICS_BASE_STYLE: LyricsStyle = {
   uppercase: false
 };
 
-export function lyricsStyleFor(settings: Settings): LyricsStyle {
+/** Research text is prose with a source line under it: smaller and lighter than song lyrics. */
+export const RESEARCH_BASE_STYLE: LyricsStyle = {
+  ...LYRICS_BASE_STYLE,
+  fontSize: 60,
+  fontWeight: 600,
+  lineHeight: 1.35
+};
+
+export function lyricsStyleFor(settings: Settings, research = false): LyricsStyle {
+  const base = research ? RESEARCH_BASE_STYLE : LYRICS_BASE_STYLE;
   return {
-    ...LYRICS_BASE_STYLE,
-    fontSize: Math.round(LYRICS_BASE_STYLE.fontSize * settings.lyricsScale),
+    ...base,
+    fontSize: Math.round(base.fontSize * settings.lyricsScale),
     uppercase: settings.lyricsUppercase
   };
 }

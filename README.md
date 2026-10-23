@@ -1,6 +1,6 @@
 # Vmix Reference Studio
 
-A Windows app for live webinars: search Google Images, YouTube and song lyrics, and show the result on a clean panel that vMix captures. Everything runs in **one window with three panels**:
+A Windows app for live webinars: search Google Images, YouTube, song lyrics and research topics, and show the result on a clean panel that vMix captures. Everything runs in **one window with three panels**:
 
 ```
 ┌──────────────────────────────────┬────────────────────────┐
@@ -10,8 +10,9 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 │ │YouTube   (each tab keeps its   ├────────────────────────┤
 │ │──────│    own page + history)  │ 3 · vMIX OUTPUT (NDI)  │
 │ │Lyrics│                         │ clean copy of panel 2, │
-│ └──────┘                         │ sent to vMix over NDI  │
-│                                  │ with sound             │
+│ │──────│                         │ sent to vMix over NDI  │
+│ │Resrch│                         │ with sound             │
+│ └──────┘                         │                        │
 └──────────────────────────────────┴────────────────────────┘
 ```
 
@@ -22,8 +23,9 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 | **Images** | Search, then **click any image**. | It appears in panels 2 and 3. Click another image to replace it. If Google opens the full-size version, the panels switch to it automatically. The results page never moves. |
 | **YouTube** | Search, then **click a video**. | It plays in panel 2 with YouTube's normal controls (play, pause, seek, volume, speed, captions). Panel 3 plays the same video in sync and shows **only the video picture**: no title, controls, play/pause indicator or "More videos". The results stay in the tab. |
 | **Lyrics** | Type the song title (the app adds "song lyrics" to the Google search so the lyrics come first), then **highlight the lyrics with the mouse**. | The highlighted text becomes slides (up to 4 lines each), shown in panels 2 and 3. Use ← → (or the numbered buttons) to change slides, and − / + / AA for text size and uppercase. If the highlight did not register, click **Use highlighted text**. |
+| **Research** | Search a topic, open a trusted page (for example NASA or Britannica), then **highlight the text with the mouse**. | The text becomes slides of whole sentences, with the source under each slide: **Source: NASA · Overview · September 1, 2020**. The source is read from the page itself (its publisher, title and publication date) and never guessed: a page that states no date shows no date, and on editable sites such as Wikipedia the date is the last update. Panel 2 shows how far the site can be trusted (**Official source**, **Check source** for sites anyone can edit, **Verify source** for others) and an **Open source** button. Text from Google's AI overview is refused because it has no single source; text from a Google result snippet is credited to that result. |
 
-- **One search, all three tabs:** whatever you search in any tab is searched in Images, YouTube and Lyrics at the same time, so switching tabs shows results for the same words. A typed web address opens only in the current tab.
+- **One search, all four tabs:** whatever you search in any tab is searched in Images, YouTube, Lyrics and Research too, so switching tabs shows results for the same words. YouTube searches right away; the other Google tabs run the search when you open them, because several Google searches at the same moment trigger Google's "unusual traffic" check. A typed web address opens only in the current tab.
 - **Black** (top right of panel 2, or **Ctrl+Shift+B**) clears panels 2 and 3 to black.
 - Panel 3 always mirrors panel 2. Anything you click in panel 1 is shown immediately.
 - Sound comes from panel 3 only (panel 2 is muted), so there is no double audio. Volume and mute changes in panel 2 are copied to panel 3.
@@ -34,7 +36,7 @@ A Windows app for live webinars: search Google Images, YouTube and song lyrics, 
 
 | Keys | Action |
 | --- | --- |
-| Ctrl+1 / Ctrl+2 / Ctrl+3 | Images / YouTube / Lyrics tab |
+| Ctrl+1 / Ctrl+2 / Ctrl+3 / Ctrl+4 | Images / YouTube / Lyrics / Research tab |
 | Ctrl+L | Go to the search box |
 | Alt+← / Alt+→ | Back / forward in the current tab |
 | ← / → (or Page Up / Page Down) | Previous / next lyrics slide, when a web page does not have focus |
@@ -79,7 +81,7 @@ If you run `npm run dev` from a VS Code terminal and Electron starts as plain No
 ## How it works (for developers)
 
 - **Electron + React + TypeScript**, built with electron-vite and packaged with electron-builder (NSIS installer + portable).
-- `src/main` is the main process and the single source of truth. It holds the three search tabs (`research/tabs.ts`), the program shown in panels 2/3 (`player/programController.ts`, state machine in `src/shared/program.ts`), settings and ad blocking.
+- `src/main` is the main process and the single source of truth. It holds the four search tabs (`research/tabs.ts`), the program shown in panels 2/3 (`player/programController.ts`, state machine in `src/shared/program.ts`), settings and ad blocking.
 - Each search tab is a sandboxed `WebContentsView` without access to any app API. A small preload (`src/preload/research.ts`) reports only **genuine** clicks and text selections (`event.isTrusted`). The main process validates every message with zod and only accepts each tab's own kind of content.
 - Videos use YouTube's **official embedded player**, with two players: panel 2 (controls, muted) and an offscreen output player (video only, audible). The output player is re-aligned to panel 2 every 250 ms (`src/shared/sync.ts`).
 - **NDI output** (`src/main/output`, `src/main/ndi`): the program is rendered offscreen at 1920×1080 (an output page for images and lyrics, and the output YouTube player for video). Frames go to an NDI sender on a worker thread (the installed NDI library called through koffi), and a scaled JPEG preview goes to panel 3. The video's sound is captured from the output player with Web Audio (`src/preload/audioTap.ts`) and sent as NDI audio. If the owner disables embedding, the app retries with the YouTube watch page; only the surrounding page is hidden, and YouTube's player and branding are never altered.

@@ -3,7 +3,8 @@ import { app, ipcMain, screen, shell, type BrowserWindow, type IpcMainEvent, typ
 import type { EventPayloads } from '../shared/api';
 import { isLyricsSelection, lyricsToSlides, titleFromSearchPage } from '../shared/lyrics';
 import { resolveImagePick, resolveVideoLink } from '../shared/researchItems';
-import { RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL } from '../shared/researchChannels';
+import { formatSourceLine, researchToSlides, resolveResearchSource, type ResearchPageInfo } from '../shared/research';
+import { RESEARCH_COLLECT_CHANNEL, RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL } from '../shared/researchChannels';
 import { researchPickSchema, type ResearchPick } from '../shared/schemas';
 import type { OutputPageState } from '../shared/outputPage';
 import { defaultSettings, lyricsStyleFor, parseSettings, type Settings } from '../shared/settings';
@@ -18,7 +19,7 @@ import { JsonStore } from './store/jsonStore';
 
 /**
  * The application's single source of truth in the main process. It owns the
- * three search tabs, the program shown in panels 2 and 3, and the settings,
+ * four search tabs, the program shown in panels 2 and 3, and the settings,
  * and pushes one snapshot to the operator UI whenever anything changes.
  */
 export class Controller {
@@ -58,6 +59,7 @@ export class Controller {
       showImage: (src, alt, href) => this.showImage({ pickId: newPickId(), src, alt, href }),
       playVideo: (url, title) => this.showVideo(url, title),
       showLyrics: (text, pageTitle) => this.showLyrics(text, pageTitle, true),
+      showResearchSelection: () => this.collectResearchSelection(),
       openExternal: (url) => void shell.openExternal(url),
       allowInspect: isDev
     });
@@ -103,7 +105,14 @@ export class Controller {
     const p = this.program.program;
     let state: OutputPageState;
     if (p.kind === 'image') state = { kind: 'image', rev: p.rev, url: p.url, fallbackUrl: p.fallbackUrl };
-    else if (p.kind === 'lyrics') state = { kind: 'lyrics', rev: p.rev, text: p.slides[p.index] ?? '', style: lyricsStyleFor(this.settings) };
+    else if (p.kind === 'lyrics')
+      state = {
+        kind: 'lyrics',
+        rev: p.rev,
+        text: p.slides[p.index] ?? '',
+        style: lyricsStyleFor(this.settings, p.source !== null),
+        source: p.source ? formatSourceLine(p.source) : null
+      };
     else state = { kind: 'black', rev: p.rev };
     const key = JSON.stringify(state);
     if (key === this.outputPageKey) return;
@@ -190,6 +199,7 @@ export class Controller {
     if ((pick.type === 'image' || pick.type === 'imageUpgrade') && tab !== 'images') return;
     if (pick.type === 'video' && tab !== 'youtube') return;
     if (pick.type === 'lyrics' && tab !== 'lyrics') return;
+    if (pick.type === 'research' && tab !== 'research') return;
 
     switch (pick.type) {
       case 'image':
@@ -203,6 +213,9 @@ export class Controller {
         break;
       case 'lyrics':
         this.showLyrics(pick.text, pick.pageTitle, false);
+        break;
+      case 'research':
+        this.showResearch(pick.text, pick.page, pick.explicit);
         break;
     }
   }
@@ -229,7 +242,38 @@ export class Controller {
     this.program.dispatch({ type: 'showLyrics', title: titleFromSearchPage(pageTitle), slides });
   }
 
+  /**
+   * Shows highlighted research text with its source. Text whose source cannot be
+   * named truthfully (for example Google's AI overview) is not shown at all.
+   */
+  showResearch(text: string, page: ResearchPageInfo, explicit: boolean): void {
+    if (!text.trim()) {
+      if (explicit) this.notify('warning', 'Highlight the text on the page first.');
+      return;
+    }
+    if (!explicit && !isLyricsSelection(text)) return;
+    const source = resolveResearchSource(page);
+    if (!source) {
+      this.notify('warning', 'The source of this text cannot be named. Open the source page (not Google’s summary) and highlight the text there.');
+      return;
+    }
+    const slides = researchToSlides(text);
+    if (slides.length === 0) return;
+    this.program.dispatch({ type: 'showLyrics', title: source.title, slides, source });
+    if (source.fromSearchPage) this.notify('info', 'Shown from a Google snippet. Open the page to confirm the text and add its date.');
+    else if (!source.date) this.notify('info', 'This page does not state a date, so none is shown.');
+  }
+
+  /** Asks the Research tab for its highlighted text and source details (they arrive as a pick). */
+  collectResearchSelection(): void {
+    this.tabs.webContents('research')?.send(RESEARCH_COLLECT_CHANNEL);
+  }
+
   async useSelection(): Promise<void> {
+    if (this.tabs.active === 'research') {
+      this.collectResearchSelection();
+      return;
+    }
     const text = await this.tabs.selectionText('lyrics');
     if (!text.trim()) throw new Error('Highlight the lyrics on the page first.');
     this.showLyrics(text, this.tabs.state('lyrics').title, true);
@@ -305,8 +349,8 @@ export class Controller {
       this.send('app:focusSearch', null);
       return true;
     }
-    if (ctrl && !input.shift && ['1', '2', '3'].includes(key)) {
-      this.selectTab((['images', 'youtube', 'lyrics'] as const)[Number(key) - 1]!);
+    if (ctrl && !input.shift && ['1', '2', '3', '4'].includes(key)) {
+      this.selectTab((['images', 'youtube', 'lyrics', 'research'] as const)[Number(key) - 1]!);
       return true;
     }
     if (input.alt && !input.control && !input.meta && (key === 'arrowleft' || key === 'arrowright')) {

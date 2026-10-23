@@ -1,5 +1,5 @@
 import type { OutputPageApi, OutputPageState } from '../../../shared/outputPage';
-import { applyLyricsStyle, fitLyricsText } from '../lib/lyricsRender';
+import { applyLyricsStyle, applySourceStyle, fitLyricsText } from '../lib/lyricsRender';
 
 /**
  * The offscreen output page (1920×1080). It draws images, lyrics or black;
@@ -64,6 +64,12 @@ function showLyrics(state: Extract<OutputPageState, { kind: 'lyrics' }>): void {
   stage.replaceChildren(box);
   applyLyricsStyle(box, text, state.style, window.innerHeight);
   fitLyricsText(box, text, state.style, window.innerHeight);
+  if (state.source) {
+    const source = document.createElement('div');
+    source.textContent = state.source;
+    box.appendChild(source);
+    applySourceStyle(source, state.style, window.innerHeight);
+  }
 }
 
 function render(state: OutputPageState): void {

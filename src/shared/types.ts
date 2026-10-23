@@ -3,11 +3,12 @@
  * This module must stay free of Electron and Node imports.
  */
 
+import type { ResearchSource } from './research';
 import type { Settings } from './settings';
 
-/** The three search tabs in panel 1. Each tab is its own browser with its own history. */
-export type TabId = 'images' | 'youtube' | 'lyrics';
-export const TAB_IDS: readonly TabId[] = ['images', 'youtube', 'lyrics'];
+/** The four search tabs in panel 1. Each tab is its own browser with its own history. */
+export type TabId = 'images' | 'youtube' | 'lyrics' | 'research';
+export const TAB_IDS: readonly TabId[] = ['images', 'youtube', 'lyrics', 'research'];
 
 export interface TabState {
   url: string;
@@ -46,7 +47,15 @@ export type ProgramState =
       status: 'loading' | 'ready' | 'error';
       error: string | null;
     }
-  | { kind: 'lyrics'; rev: number; title: string; slides: string[]; index: number };
+  | {
+      kind: 'lyrics';
+      rev: number;
+      title: string;
+      slides: string[];
+      index: number;
+      /** Set for research text: where it comes from, shown under every slide. Null for song lyrics. */
+      source: ResearchSource | null;
+    };
 
 export interface Playback {
   playing: boolean;

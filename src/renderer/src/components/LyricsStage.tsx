@@ -1,10 +1,12 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { LyricsStyle } from '../../../shared/lyrics';
-import { applyLyricsStyle, fitLyricsText, REFERENCE_HEIGHT } from '../lib/lyricsRender';
+import { applyLyricsStyle, applySourceStyle, fitLyricsText, REFERENCE_HEIGHT } from '../lib/lyricsRender';
 
 interface Props {
   text: string;
   style: LyricsStyle;
+  /** Source line shown under research slides. */
+  source?: string | null;
   /** Output aspect ratio (width / height). */
   aspect?: number;
   /** Receives the auto-fit scale (1 = configured font size). */
@@ -16,10 +18,11 @@ interface Props {
  * Renders a lyrics slide exactly as the Presentation Output does, on a virtual
  * 1080-pixel-tall stage scaled down to the container.
  */
-export function LyricsStage({ text, style, aspect = 16 / 9, onFit, className }: Props) {
+export function LyricsStage({ text, style, source = null, aspect = 16 / 9, onFit, className }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+  const sourceRef = useRef<HTMLDivElement>(null);
   const onFitRef = useRef(onFit);
   const [zoom, setZoom] = useState(0.2);
   const stageWidth = Math.round(REFERENCE_HEIGHT * aspect);
@@ -45,7 +48,8 @@ export function LyricsStage({ text, style, aspect = 16 / 9, onFit, className }: 
     applyLyricsStyle(stage, textEl, style, REFERENCE_HEIGHT);
     const scale = fitLyricsText(stage, textEl, style, REFERENCE_HEIGHT);
     onFitRef.current?.(scale);
-  }, [text, style, stageWidth]);
+    if (sourceRef.current) applySourceStyle(sourceRef.current, style, REFERENCE_HEIGHT);
+  }, [text, style, source, stageWidth]);
 
   return (
     <div
@@ -66,6 +70,7 @@ export function LyricsStage({ text, style, aspect = 16 / 9, onFit, className }: 
         }}
       >
         <div ref={textRef}>{text}</div>
+        {source ? <div ref={sourceRef}>{source}</div> : null}
       </div>
     </div>
   );

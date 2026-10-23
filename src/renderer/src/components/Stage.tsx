@@ -1,4 +1,5 @@
 import type { AppSnapshot } from '../../../shared/types';
+import { formatSourceLine } from '../../../shared/research';
 import { lyricsStyleFor } from '../../../shared/settings';
 import { LyricsStage } from './LyricsStage';
 
@@ -13,13 +14,19 @@ export function Stage({ snap, imageSrc, clean }: { snap: AppSnapshot; imageSrc: 
     return imageSrc ? <img className="stage-image" src={imageSrc} alt="" referrerPolicy="no-referrer" draggable={false} /> : null;
   }
   if (p.kind === 'lyrics') {
-    return <LyricsStage text={p.slides[p.index] ?? ''} style={lyricsStyleFor(snap.settings)} />;
+    return (
+      <LyricsStage
+        text={p.slides[p.index] ?? ''}
+        style={lyricsStyleFor(snap.settings, p.source !== null)}
+        source={p.source ? formatSourceLine(p.source) : null}
+      />
+    );
   }
   if (p.kind === 'video' && !clean && p.status === 'error') {
     return <div className="stage-message error-text">{p.error}</div>;
   }
   if (p.kind === 'empty' && !clean) {
-    return <div className="stage-message">Click an image, a video or highlight lyrics in panel 1.</div>;
+    return <div className="stage-message">Click an image or a video, or highlight lyrics or research text in panel 1.</div>;
   }
   return null;
 }

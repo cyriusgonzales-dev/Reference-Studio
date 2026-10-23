@@ -4,7 +4,8 @@ import { MAX_LYRICS_TEXT } from './lyrics';
 import { isAllowedImageUrl, MAX_URL_LENGTH } from './urls';
 
 const none = z.undefined();
-const tabId = z.enum(['images', 'youtube', 'lyrics']);
+const tabId = z.enum(['images', 'youtube', 'lyrics', 'research']);
+const pageText = (max = 500) => z.string().max(max);
 const httpUrl = z.string().max(MAX_URL_LENGTH).refine((u) => /^https?:\/\//i.test(u), 'Only http and https URLs are allowed');
 const coordinate = z.number().finite().min(-10_000).max(100_000);
 
@@ -60,7 +61,23 @@ export const researchPickSchema = z.discriminatedUnion('type', [
     src: z.string().refine(isAllowedImageUrl, 'Unsupported image URL')
   }),
   z.object({ type: z.literal('video'), href: httpUrl, title: z.string().max(500) }),
-  z.object({ type: z.literal('lyrics'), text: z.string().max(MAX_LYRICS_TEXT), pageTitle: z.string().max(500) })
+  z.object({ type: z.literal('lyrics'), text: z.string().max(MAX_LYRICS_TEXT), pageTitle: z.string().max(500) }),
+  z.object({
+    type: z.literal('research'),
+    text: z.string().max(MAX_LYRICS_TEXT),
+    /** True when the operator asked for the selection (button or menu), so an empty one is reported. */
+    explicit: z.boolean(),
+    page: z.object({
+      url: httpUrl,
+      documentTitle: pageText(),
+      title: pageText(),
+      siteName: pageText(),
+      publisher: pageText(),
+      published: pageText(100),
+      modified: pageText(100),
+      result: z.object({ href: httpUrl, title: pageText() }).nullable()
+    })
+  })
 ]);
 
 export type ResearchPick = z.infer<typeof researchPickSchema>;

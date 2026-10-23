@@ -5,7 +5,7 @@ import { hostnameOf, isHttpUrl, looksLikeUrl, parseYouTubeVideo, resolveAddressI
 import { buildResearchContextMenu, type ResearchMenuActions } from './contextMenu';
 
 /**
- * Panel 1: three independent browser tabs (Images, YouTube, Lyrics). Each is a
+ * Panel 1: four independent browser tabs (Images, YouTube, Lyrics, Research). Each is a
  * sandboxed WebContentsView with its own navigation history; switching tabs
  * only changes which one is visible, so every tab keeps its page and history.
  * Remote pages get no application API; the research preload only reports
@@ -31,6 +31,8 @@ export class ResearchTabs {
   private activeTab: TabId;
   private bounds: Rect = { x: 0, y: 0, width: 0, height: 0 };
   private lastPickAt = 0;
+  /** Searches waiting for a Google tab to be opened (see searchAll). */
+  private readonly pendingSearch = new Map<TabId, string>();
 
   constructor(
     private readonly host: BrowserWindow,
@@ -165,7 +167,7 @@ export class ResearchTabs {
     });
 
     wc.on('context-menu', (_e, params) => {
-      buildResearchContextMenu(params, wc, this.callbacks).popup({ window: this.host });
+      buildResearchContextMenu(params, wc, this.callbacks, tab === 'research').popup({ window: this.host });
     });
     wc.on('before-input-event', (event, input) => {
       if (input.type === 'keyDown' && this.callbacks.onKey(input)) event.preventDefault();
@@ -180,6 +182,8 @@ export class ResearchTabs {
     this.activeTab = tab;
     this.layout();
     this.callbacks.onChange();
+    const pending = this.pendingSearch.get(tab);
+    if (pending !== undefined) this.navigateInput(tab, pending);
   }
 
   setBounds(rect: Rect): void {
@@ -201,7 +205,7 @@ export class ResearchTabs {
   }
 
   /**
-   * Runs typed search terms in all three tabs at once (Google Images, YouTube, Google lyrics).
+   * Runs typed search terms in every tab at once (Google Images, YouTube, Google lyrics, Google).
    * A typed web address opens only in the tab it was typed in.
    */
   searchAll(tab: TabId, input: string): void {
@@ -211,10 +215,16 @@ export class ResearchTabs {
     }
     // The tab the operator typed in goes first so its errors are the ones reported.
     this.navigateInput(tab, input);
-    for (const other of TAB_IDS) if (other !== tab) this.navigateInput(other, input);
+    for (const other of TAB_IDS) {
+      if (other === tab) continue;
+      // Several Google searches at the same moment trigger Google's "unusual traffic" check,
+      // so the other Google tabs run the search when the operator opens them.
+      if (other === 'youtube') this.navigateInput(other, input);
+      else this.pendingSearch.set(other, input);
+    }
   }
 
-  /** Turns typed text into a URL for the tab: a search on Google Images, YouTube or Google (lyrics). */
+  /** Turns typed text into a URL for the tab: a search on Google Images, YouTube or Google (lyrics and research). */
   navigateInput(tab: TabId, input: string): void {
     let text = input.trim();
     // "song lyrics" makes Google put the lyrics box first instead of videos or news.
@@ -230,6 +240,8 @@ export class ResearchTabs {
   navigate(tab: TabId, url: string): void {
     const wc = this.webContents(tab);
     if (!wc || !isHttpUrl(url)) return;
+    // Any navigation of the tab replaces a search waiting for it.
+    this.pendingSearch.delete(tab);
     this.patch(tab, { url, error: null });
     wc.loadURL(url).catch((error: Error) => {
       if (!/ERR_ABORTED/.test(error.message)) this.patch(tab, { loading: false, error: friendlyError(-1, error.message) });

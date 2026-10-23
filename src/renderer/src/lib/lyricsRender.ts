@@ -41,6 +41,32 @@ export function applyLyricsStyle(stage: HTMLElement, text: HTMLElement, style: L
 }
 
 /**
+ * Styles the source line under a research slide. It sits inside the bottom
+ * safe margin, so it never overlaps the text and needs no layout change.
+ */
+export function applySourceStyle(line: HTMLElement, style: LyricsStyle, stageHeight: number): void {
+  const unit = stageHeight / REFERENCE_HEIGHT;
+  Object.assign(line.style, {
+    position: 'absolute',
+    left: `${style.marginPercent}%`,
+    right: `${style.marginPercent}%`,
+    bottom: `${30 * unit}px`,
+    fontFamily: '"Segoe UI", Arial, sans-serif',
+    fontSize: `${32 * unit}px`,
+    fontWeight: '500',
+    lineHeight: '1.3',
+    color: 'rgba(255, 255, 255, 0.78)',
+    textAlign: 'center',
+    textTransform: 'none',
+    textShadow: `0 ${unit}px ${4 * unit}px rgba(0,0,0,0.85)`,
+    display: '-webkit-box',
+    webkitBoxOrient: 'vertical',
+    webkitLineClamp: '2',
+    overflow: 'hidden'
+  });
+}
+
+/**
  * Shrinks the text until it fits inside the stage's content box.
  * Returns the applied scale (1 = configured size).
  */

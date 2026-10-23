@@ -1,3 +1,4 @@
+import type { ResearchSource } from './research';
 import type { ProgramState } from './types';
 
 /**
@@ -13,7 +14,7 @@ export type ProgramEvent =
   | { type: 'showVideo'; title: string; videoId: string; startSeconds?: number }
   | { type: 'videoReady'; rev: number }
   | { type: 'videoFailed'; rev: number; message: string }
-  | { type: 'showLyrics'; title: string; slides: string[] }
+  | { type: 'showLyrics'; title: string; slides: string[]; source?: ResearchSource | null }
   | { type: 'lyricsGoto'; index: number }
   | { type: 'lyricsStep'; delta: 1 | -1 }
   | { type: 'clear' };
@@ -68,7 +69,7 @@ export function reduceProgram(state: ProgramState, event: ProgramEvent): Program
     case 'showLyrics': {
       const slides = event.slides.map((s) => s.trim()).filter(Boolean);
       if (slides.length === 0) return state;
-      return { kind: 'lyrics', rev, title: event.title, slides, index: 0 };
+      return { kind: 'lyrics', rev, title: event.title, slides, index: 0, source: event.source ?? null };
     }
 
     case 'lyricsGoto': {

@@ -6,11 +6,13 @@ export interface ResearchMenuActions {
   showImage(src: string, alt: string, href: string): void;
   playVideo(url: string, title: string): void;
   showLyrics(text: string, pageTitle: string): void;
+  /** Research tab: show the highlighted text with its source. */
+  showResearchSelection(): void;
   openExternal(url: string): void;
   allowInspect: boolean;
 }
 
-export function buildResearchContextMenu(params: ContextMenuParams, wc: WebContents, actions: ResearchMenuActions): Menu {
+export function buildResearchContextMenu(params: ContextMenuParams, wc: WebContents, actions: ResearchMenuActions, research: boolean): Menu {
   const template: MenuItemConstructorOptions[] = [];
   const section = (items: MenuItemConstructorOptions[]) => {
     if (items.length === 0) return;
@@ -26,7 +28,9 @@ export function buildResearchContextMenu(params: ContextMenuParams, wc: WebConte
   }
   if (params.selectionText.trim()) {
     section([
-      { label: 'Show selected text as lyrics', click: () => actions.showLyrics(params.selectionText, wc.getTitle()) },
+      research
+        ? { label: 'Show selected text with its source', click: () => actions.showResearchSelection() }
+        : { label: 'Show selected text as lyrics', click: () => actions.showLyrics(params.selectionText, wc.getTitle()) },
       { role: 'copy' }
     ]);
   }

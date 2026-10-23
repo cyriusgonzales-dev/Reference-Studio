@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, Minus, Plus, Square } from 'lucide-react';
+import { formatSourceLine, type ResearchSource } from '../../../shared/research';
 import type { AppSnapshot } from '../../../shared/types';
 import { youtubeWatchUrl } from '../../../shared/urls';
 import { run } from '../lib/api';
@@ -70,11 +71,36 @@ function NdiBadge({ snap }: { snap: AppSnapshot }) {
   );
 }
 
+const TRUST_LABELS: Record<ResearchSource['trust'], { label: string; className: string; hint: string }> = {
+  official: { label: 'Official source', className: 'ok', hint: 'A government, university, scientific or established news/reference site.' },
+  user: { label: 'Check source', className: 'warn', hint: 'Anyone can publish or edit on this site. Confirm the text with an official source.' },
+  unknown: { label: 'Verify source', className: '', hint: 'Not a site the app recognises. Make sure it is reliable before showing it.' }
+};
+
+/** Research slides: where the text comes from, how far the site can be trusted, and a link to check it. */
+function SourceRow({ source }: { source: ResearchSource }) {
+  const trust = TRUST_LABELS[source.trust];
+  return (
+    <div className="controls source-row">
+      <span className={`chip ${trust.className}`} title={trust.hint}>
+        {trust.label}
+      </span>
+      <span className="ellipsis grow small muted" title={`${formatSourceLine(source)}\n${source.url}`}>
+        {source.fromSearchPage ? 'From a Google snippet · ' : ''}
+        {new URL(source.url).hostname}
+      </span>
+      <button className="btn sm" title="Open the source page in your browser to check the text" onClick={() => run('app:openExternal', { url: source.url })}>
+        <ExternalLink size={13} /> Open source
+      </button>
+    </div>
+  );
+}
+
 function Controls({ snap, imageFailed }: { snap: AppSnapshot; imageFailed: boolean }) {
   const p = snap.program;
   if (p.kind === 'lyrics') {
     const next = p.slides[p.index + 1];
-    return (
+    const slideControls = (
       <div className="controls">
         <button className="btn icon" title="Previous slide (←)" disabled={p.index === 0} onClick={() => run('program:lyrics', { command: 'previous' })}>
           <ChevronLeft size={16} />
@@ -116,6 +142,14 @@ function Controls({ snap, imageFailed }: { snap: AppSnapshot; imageFailed: boole
           AA
         </button>
       </div>
+    );
+    return p.source ? (
+      <>
+        {slideControls}
+        <SourceRow source={p.source} />
+      </>
+    ) : (
+      slideControls
     );
   }
   if (p.kind === 'video') {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Home, Image as ImageIcon, Music, RotateCw, Search, Shield, ShieldOff, Type, X, SquarePlay } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Home, Image as ImageIcon, Music, RotateCw, Search, Shield, ShieldOff, Type, X, SquarePlay } from 'lucide-react';
 import type { AppSnapshot, TabId } from '../../../shared/types';
 import { extractSearchQuery } from '../../../shared/urls';
 import { call, run } from '../lib/api';
@@ -11,33 +11,40 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode; placeholder
     id: 'images',
     label: 'Images',
     icon: <ImageIcon size={20} />,
-    placeholder: 'Search Images, YouTube and Lyrics together…',
+    placeholder: 'Search Images, YouTube, Lyrics and Research together…',
     hint: 'Click any image to show it in panels 2 and 3. Click another to replace it.'
   },
   {
     id: 'youtube',
     label: 'YouTube',
     icon: <SquarePlay size={20} />,
-    placeholder: 'Search YouTube, Images and Lyrics together…',
+    placeholder: 'Search YouTube, Images, Lyrics and Research together…',
     hint: 'Click a video to play it in panel 2. These results stay here.'
   },
   {
     id: 'lyrics',
     label: 'Lyrics',
     icon: <Music size={20} />,
-    placeholder: 'Song title — searches Lyrics, Images and YouTube together…',
+    placeholder: 'Song title — searches Lyrics, Images, YouTube and Research together…',
     hint: 'Search a song, then highlight the lyrics on the page with the mouse to show them.'
+  },
+  {
+    id: 'research',
+    label: 'Research',
+    icon: <BookOpen size={20} />,
+    placeholder: 'Topic — searches Research, Images, YouTube and Lyrics together…',
+    hint: 'Open a trusted page (NASA, Britannica…), then highlight text. It is shown with its source: site · title · date.'
   }
 ];
 
-/** Panel 1: three search tabs, each a real browser with its own history. */
+/** Panel 1: four search tabs, each a real browser with its own history. */
 export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRequest: number }) {
   const tab = snap.activeTab;
   const state = snap.tabs[tab];
   const meta = TABS.find((t) => t.id === tab)!;
   const hostRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [drafts, setDrafts] = useState<Record<TabId, string | null>>({ images: null, youtube: null, lyrics: null });
+  const [drafts, setDrafts] = useState<Record<TabId, string | null>>({ images: null, youtube: null, lyrics: null, research: null });
   const notification = useNotification();
   useViewBounds(hostRef, 'research');
 
@@ -55,7 +62,7 @@ export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRe
     const input = (drafts[tab] ?? shown).trim();
     if (!input) return;
     // Every tab runs the same search, so every tab shows its new results' query.
-    setDrafts({ images: null, youtube: null, lyrics: null });
+    setDrafts({ images: null, youtube: null, lyrics: null, research: null });
     call('tab:navigate', { tab, input }).catch((e: Error) => notify('error', e.message));
   };
 
@@ -134,10 +141,10 @@ export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRe
           <button className="btn primary" onClick={go} title="Search">
             <Search size={15} /> Search
           </button>
-          {tab === 'lyrics' ? (
+          {tab === 'lyrics' || tab === 'research' ? (
             <button
               className="btn"
-              title="Show the text highlighted on the page as lyrics"
+              title={tab === 'research' ? 'Show the text highlighted on the page, with its source' : 'Show the text highlighted on the page as lyrics'}
               onClick={() => call('tab:useSelection').catch((e: Error) => notify('warning', e.message))}
             >
               <Type size={15} /> Use highlighted text
