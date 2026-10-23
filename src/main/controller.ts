@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { app, ipcMain, screen, shell, type BrowserWindow, type IpcMainEvent, type Session } from 'electron';
 import type { EventPayloads } from '../shared/api';
-import { isLyricsSelection, lyricsToSlides, titleFromSearchPage } from '../shared/lyrics';
+import { isLyricsSelection, lyricsToSlides, resolveSongCredit, titleFromSearchPage, type SongCreditInfo } from '../shared/lyrics';
 import { resolveImagePick, resolveVideoLink } from '../shared/researchItems';
-import { formatSourceLine, researchToSlides, resolveResearchSource, type ResearchPageInfo } from '../shared/research';
+import { researchToSlides, resolveResearchSource, slideFooter, type ResearchPageInfo } from '../shared/research';
 import { RESEARCH_COLLECT_CHANNEL, RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL } from '../shared/researchChannels';
 import { researchPickSchema, type ResearchPick } from '../shared/schemas';
 import type { OutputPageState } from '../shared/outputPage';
@@ -58,8 +58,7 @@ export class Controller {
       onVideoNavigation: (url, title) => this.showVideo(url, title.replace(/\s*-\s*YouTube\s*$/i, '')),
       showImage: (src, alt, href) => this.showImage({ pickId: newPickId(), src, alt, href }),
       playVideo: (url, title) => this.showVideo(url, title),
-      showLyrics: (text, pageTitle) => this.showLyrics(text, pageTitle, true),
-      showResearchSelection: () => this.collectResearchSelection(),
+      useSelection: () => this.collectSelection(this.tabs.active),
       openExternal: (url) => void shell.openExternal(url),
       allowInspect: isDev
     });
@@ -111,7 +110,7 @@ export class Controller {
         rev: p.rev,
         text: p.slides[p.index] ?? '',
         style: lyricsStyleFor(this.settings, p.source !== null),
-        source: p.source ? formatSourceLine(p.source) : null
+        source: slideFooter(p)
       };
     else state = { kind: 'black', rev: p.rev };
     const key = JSON.stringify(state);
@@ -212,7 +211,7 @@ export class Controller {
         this.showVideo(pick.href, pick.title);
         break;
       case 'lyrics':
-        this.showLyrics(pick.text, pick.pageTitle, false);
+        this.showLyrics(pick.text, pick.pageTitle, pick.explicit ?? false, pick.credit ?? null);
         break;
       case 'research':
         this.showResearch(pick.text, pick.page, pick.explicit);
@@ -232,14 +231,19 @@ export class Controller {
     this.program.dispatch({ type: 'showVideo', title: video.title, videoId: video.videoId, startSeconds: video.startSeconds });
   }
 
-  showLyrics(text: string, pageTitle: string, explicit: boolean): void {
+  showLyrics(text: string, pageTitle: string, explicit: boolean, creditInfo: SongCreditInfo | null = null): void {
+    if (!text.trim()) {
+      if (explicit) this.notify('warning', 'Highlight the lyrics on the page first.');
+      return;
+    }
     if (!explicit && !isLyricsSelection(text)) return;
     const slides = lyricsToSlides(text);
     if (slides.length === 0) {
       if (explicit) this.notify('warning', 'No lyrics text found in the selection.');
       return;
     }
-    this.program.dispatch({ type: 'showLyrics', title: titleFromSearchPage(pageTitle), slides });
+    const credit = resolveSongCredit(creditInfo, text, titleFromSearchPage(pageTitle));
+    this.program.dispatch({ type: 'showLyrics', title: credit?.title ?? titleFromSearchPage(pageTitle), slides, credit });
   }
 
   /**
@@ -264,19 +268,13 @@ export class Controller {
     else if (!source.date) this.notify('info', 'This page does not state a date, so none is shown.');
   }
 
-  /** Asks the Research tab for its highlighted text and source details (they arrive as a pick). */
-  collectResearchSelection(): void {
-    this.tabs.webContents('research')?.send(RESEARCH_COLLECT_CHANNEL);
+  /** Asks the Lyrics or Research tab for its highlighted text and the page's credits (they arrive as a pick). */
+  collectSelection(tab: TabId): void {
+    if (tab === 'lyrics' || tab === 'research') this.tabs.webContents(tab)?.send(RESEARCH_COLLECT_CHANNEL);
   }
 
-  async useSelection(): Promise<void> {
-    if (this.tabs.active === 'research') {
-      this.collectResearchSelection();
-      return;
-    }
-    const text = await this.tabs.selectionText('lyrics');
-    if (!text.trim()) throw new Error('Highlight the lyrics on the page first.');
-    this.showLyrics(text, this.tabs.state('lyrics').title, true);
+  useSelection(): void {
+    this.collectSelection(this.tabs.active === 'research' ? 'research' : 'lyrics');
   }
 
   /* ---------------------------------------------------------------- */

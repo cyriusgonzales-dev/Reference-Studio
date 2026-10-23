@@ -10,7 +10,8 @@ import { RESEARCH_COLLECT_CHANNEL, RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL 
  *                 Google reveals in its preview pane).
  *  - YouTube tab: a clicked video link. The click is cancelled so the search
  *                 results stay open; the video plays in panel 2 instead.
- *  - Lyrics tab:  highlighted text. On Google results it also hides everything
+ *  - Lyrics tab:  highlighted text, with the song credits the page states
+ *                 (title, composer, lyricist, date). On Google results it also hides everything
  *                 below the first web result that is not a lyrics page.
  *  - Research tab: highlighted text, with the source details the page itself
  *                 declares (publisher, title, publication date).
@@ -169,16 +170,171 @@ function onVideoClick(event: MouseEvent): void {
 /* Lyrics                                                              */
 /* ------------------------------------------------------------------ */
 
+type CreditField = 'composer' | 'lyricist' | 'writers' | 'date';
+type Credits = Record<CreditField | 'title', string>;
+
+/** Labels lyrics pages put before credits ("Composer", "Author:"). */
+const CREDIT_LABELS: Array<[RegExp, CreditField]> = [
+  [/^(composers?|composed by|music|music by|musika)$/i, 'composer'],
+  [/^(lyricists?|lyrics by|words|words by|liriko)$/i, 'lyricist'],
+  [/^(writers?|songwriters?|written by|words and music|words & music)$/i, 'writers'],
+  [/^(release date|released|composed|year composed|year written)$/i, 'date']
+];
+/** On song pages (Hymnary), "Author" is the lyricist; elsewhere it is often the blog post's author. */
+const AUTHOR_LABEL: [RegExp, CreditField] = [/^(author|text)$/i, 'lyricist'];
+
+function creditLabel(text: string, labels: Array<[RegExp, CreditField]>): CreditField | null {
+  const label = text.replace(/:$/, '').trim();
+  return labels.find(([re]) => re.test(label))?.[1] ?? null;
+}
+
+function personNames(value: unknown): string {
+  const list = Array.isArray(value) ? value : value ? [value] : [];
+  return list
+    .map((p) => (typeof p === 'string' ? p : p && typeof p === 'object' && typeof (p as { name?: unknown }).name === 'string' ? (p as { name: string }).name : ''))
+    .filter(Boolean)
+    .join(', ');
+}
+
+/** schema.org MusicComposition / MusicRecording data, which hymn and lyrics sites publish. */
+function musicStructuredData(credits: Credits): void {
+  const visit = (node: unknown, depth: number): void => {
+    if (depth > 6 || !node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item, depth + 1);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    if (/Music(Composition|Recording)/.test(String(obj['@type']))) {
+      if (!credits.title && typeof obj.name === 'string') credits.title = trimmed(obj.name, 200);
+      credits.composer ||= trimmed(personNames(obj.composer), 200);
+      credits.lyricist ||= trimmed(personNames(obj.lyricist), 200);
+      for (const key of ['dateCreated', 'datePublished', 'copyrightYear']) {
+        if (!credits.date && (typeof obj[key] === 'string' || typeof obj[key] === 'number')) credits.date = trimmed(String(obj[key]), 100);
+      }
+    }
+    if (obj['@graph']) visit(obj['@graph'], depth + 1);
+  };
+  for (const script of Array.from(document.querySelectorAll('script[type="application/ld+json"]')).slice(0, 10)) {
+    try {
+      visit(JSON.parse(script.textContent ?? ''), 0);
+    } catch {
+      // malformed JSON-LD is ignored
+    }
+  }
+}
+
+/** Labels inside menus, links, tabs and buttons are navigation ("Words", "Music" tabs), not credits. */
+const NOT_A_CREDIT = 'a, button, nav, header, footer, select, option, [role="navigation"], [role="tab"], [role="tablist"], [role="menu"], [role="menuitem"], [role="button"]';
+
+/** Elements whose whole text is a credit label ("Composer", "Author:"), with the field it names. */
+function creditLabelElements(scope: Element, labels: Array<[RegExp, CreditField]>): Array<[HTMLElement, CreditField]> {
+  const found: Array<[HTMLElement, CreditField]> = [];
+  for (const el of Array.from(scope.querySelectorAll<HTMLElement>('*')).slice(0, 20000)) {
+    const text = el.textContent?.trim() ?? '';
+    if (text.length > 30 || el.childElementCount > 1) continue;
+    const field = creditLabel(text, labels);
+    if (field && !el.closest(NOT_A_CREDIT)) found.push([el, field]);
+  }
+  return found;
+}
+
+/** The value next to a label: the rest of its row ("Author: John Newton (1779)"), or the element after it. */
+function creditValue(label: HTMLElement, labels: Array<[RegExp, CreditField]>): string {
+  const labelText = label.textContent?.trim() ?? '';
+  const candidates: string[] = [];
+  const row = label.parentElement?.innerText.trim() ?? '';
+  if (row.length <= 300 && row.startsWith(labelText)) candidates.push(row.slice(labelText.length));
+  candidates.push(label.nextElementSibling instanceof HTMLElement ? label.nextElementSibling.innerText : '');
+  const parentNext = label.parentElement?.nextElementSibling;
+  candidates.push(parentNext instanceof HTMLElement ? parentNext.innerText : '');
+  for (const candidate of candidates) {
+    const value = candidate
+      .split('\n')
+      .map((l) => l.replace(/^\s*:\s*/, '').replace(/\s+/g, ' ').trim())
+      .find(Boolean);
+    // A credit is a short list of names, never another label.
+    if (value && value.length <= 200 && value.split(' ').length <= 16 && !creditLabel(value, labels)) return value;
+  }
+  return '';
+}
+
+/**
+ * Reads labelled credits in a part of the page. The first value for each field
+ * wins, except that a later one adding a year ("John Newton (1779)") replaces it.
+ */
+function labelledCredits(scope: Element, labels: Array<[RegExp, CreditField]>, credits: Credits): void {
+  const fromLabels: Partial<Credits> = {};
+  for (const [el, field] of creditLabelElements(scope, labels)) {
+    let value = creditValue(el, labels);
+    if (!value) continue;
+    // A release date is not when the song was written, so it says so.
+    if (field === 'date' && /releas/i.test(el.textContent ?? '') && !/releas/i.test(value)) value = `Released ${value}`;
+    const current = fromLabels[field];
+    if (!current || (value.startsWith(current) && /\((1[5-9]\d\d|20\d\d)\)$/.test(value))) fromLabels[field] = value;
+  }
+  for (const field of ['composer', 'lyricist', 'writers', 'date'] as const) credits[field] ||= trimmed(fromLabels[field] ?? '', 200);
+}
+
+/**
+ * Google tags its song facts with fixed codes in every language. They are read
+ * only when the highlight is in Google's own lyrics box, so they describe the same song.
+ */
+function googleSongCredits(selection: Selection | null, credits: Credits): void {
+  if (!selection?.anchorNode?.parentElement?.closest('[data-attrid$=":lyrics"]')) return;
+  const fact = (codes: string) => {
+    const lines = (document.querySelector<HTMLElement>(codes)?.innerText ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+    // "Composer\nJulián Felipe" → "Julián Felipe"; the first line is the translated label.
+    return trimmed(lines.length > 1 ? lines.slice(1).join(' ') : (lines[0] ?? '').replace(/^\S+:?\s+/, ''), 200);
+  };
+  credits.title = trimmed(document.querySelector<HTMLElement>('[data-attrid="title"]')?.innerText, 200);
+  credits.composer = fact('[data-attrid$=":composer"]');
+  credits.lyricist = fact('[data-attrid$=":lyricist"]');
+  credits.writers = fact('[data-attrid$=":songwriters"], [data-attrid$=":writers"]');
+  const released = fact('[data-attrid$=":release date"]');
+  credits.date = released ? `Released ${released}` : '';
+}
+
+/** Lyrics and hymn sites: their structured data first, then labels near the highlight (or anywhere on the page). */
+function siteSongCredits(selection: Selection | null, credits: Credits): void {
+  const songPage = /song|music/i.test(document.querySelector<HTMLMetaElement>('meta[property="og:type"]')?.content ?? '');
+  const labels = songPage ? [...CREDIT_LABELS, AUTHOR_LABEL] : CREDIT_LABELS;
+  musicStructuredData(credits);
+  let scope: Element = document.body;
+  let el: Element | null = selection?.anchorNode instanceof Element ? selection.anchorNode : (selection?.anchorNode?.parentElement ?? null);
+  for (let depth = 0; el && depth < 15; depth++, el = el.parentElement) {
+    if (creditLabelElements(el, labels).length > 0) {
+      scope = el;
+      break;
+    }
+  }
+  labelledCredits(scope, labels, credits);
+  credits.title ||= metaContent('meta[property="og:title"]') || trimmed(document.title);
+  // "Yesterday Lyrics | Genius Lyrics" → "Yesterday".
+  credits.title = credits.title.replace(/\s*[|–-]\s*[^|–-]*$/, (m) => (/lyrics|hymn|\.(com|net|org)/i.test(m) ? '' : m)).replace(/\s+lyrics$/i, '').trim();
+}
+
+/** The credits the page states for the highlighted lyrics; empty fields when it does not say. */
+function songCredits(selection: Selection | null): Credits {
+  const credits: Credits = { title: '', composer: '', lyricist: '', writers: '', date: '' };
+  if (isGoogleHost(location.hostname)) googleSongCredits(selection, credits);
+  else siteSongCredits(selection, credits);
+  return credits;
+}
+
 let lastSelection = '';
+
+function sendLyrics(explicit: boolean): void {
+  const selection = window.getSelection();
+  const text = selection?.toString() ?? '';
+  if (!explicit && (text.trim().length < 15 || text === lastSelection)) return;
+  lastSelection = text;
+  send({ type: 'lyrics', text: text.slice(0, 20000), pageTitle: document.title.slice(0, 500), explicit, credit: text.trim() ? songCredits(selection) : null });
+}
 
 function reportSelection(event: Event): void {
   if (!event.isTrusted) return;
-  window.setTimeout(() => {
-    const text = window.getSelection()?.toString() ?? '';
-    if (text.trim().length < 15 || text === lastSelection) return;
-    lastSelection = text;
-    send({ type: 'lyrics', text: text.slice(0, 20000), pageTitle: document.title.slice(0, 500) });
-  }, 120);
+  window.setTimeout(() => sendLyrics(false), 120);
 }
 
 /*
@@ -419,6 +575,8 @@ if (role === 'images') {
   window.addEventListener('keyup', (e) => {
     if (e.shiftKey || e.key === 'Shift') reportSelection(e);
   }, true);
+  // The operator pressed "Use highlighted text" or used the right-click menu.
+  ipcRenderer.on(RESEARCH_COLLECT_CHANNEL, () => sendLyrics(true));
 } else if (role === 'research') {
   window.addEventListener('mouseup', reportResearch, true);
   window.addEventListener('keyup', (e) => {

@@ -1,4 +1,4 @@
-import { MAX_LYRICS_TEXT } from './lyrics';
+import { formatSongCredit, MAX_LYRICS_TEXT, type SongCredit } from './lyrics';
 import { hostnameOf, looksLikeUrl, parseHttpUrl } from './urls';
 
 /**
@@ -240,6 +240,12 @@ export function formatSourceLine(source: ResearchSource): string {
   return ['Source: ' + source.publisher, source.title !== source.publisher ? source.title : '', source.date ?? '']
     .filter(Boolean)
     .join(' · ');
+}
+
+/** The line under a slide: the research source, or the song credits, or nothing. */
+export function slideFooter(slide: { source: ResearchSource | null; credit: SongCredit | null }): string | null {
+  if (slide.source) return formatSourceLine(slide.source);
+  return slide.credit ? formatSongCredit(slide.credit) : null;
 }
 
 /** Footnote markers and editing links that are page furniture, not content. */

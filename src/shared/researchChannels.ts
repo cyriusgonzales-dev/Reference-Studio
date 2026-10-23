@@ -4,5 +4,5 @@
 export const RESEARCH_ROLE_CHANNEL = 'research:role';
 /** Fire-and-forget: something the operator clicked or highlighted. */
 export const RESEARCH_PICK_CHANNEL = 'research:pick';
-/** Main → research preload: report the current selection and its page's source details. */
+/** Main → research preload: report the current selection with its page's source or song credits. */
 export const RESEARCH_COLLECT_CHANNEL = 'research:collect';

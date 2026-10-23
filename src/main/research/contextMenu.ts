@@ -5,9 +5,8 @@ import { isAllowedImageUrl, isHttpUrl, parseYouTubeVideo } from '../../shared/ur
 export interface ResearchMenuActions {
   showImage(src: string, alt: string, href: string): void;
   playVideo(url: string, title: string): void;
-  showLyrics(text: string, pageTitle: string): void;
-  /** Research tab: show the highlighted text with its source. */
-  showResearchSelection(): void;
+  /** Lyrics and Research tabs: show the highlighted text with its credits or source. */
+  useSelection(): void;
   openExternal(url: string): void;
   allowInspect: boolean;
 }
@@ -28,9 +27,7 @@ export function buildResearchContextMenu(params: ContextMenuParams, wc: WebConte
   }
   if (params.selectionText.trim()) {
     section([
-      research
-        ? { label: 'Show selected text with its source', click: () => actions.showResearchSelection() }
-        : { label: 'Show selected text as lyrics', click: () => actions.showLyrics(params.selectionText, wc.getTitle()) },
+      { label: research ? 'Show selected text with its source' : 'Show selected text as lyrics', click: () => actions.useSelection() },
       { role: 'copy' }
     ]);
   }

@@ -274,18 +274,6 @@ export class ResearchTabs {
     }
   }
 
-  /** The text currently highlighted in a tab. */
-  async selectionText(tab: TabId): Promise<string> {
-    const wc = this.webContents(tab);
-    if (!wc) return '';
-    try {
-      const text = (await wc.executeJavaScript('String(window.getSelection ? window.getSelection() : "")', false)) as unknown;
-      return typeof text === 'string' ? text : '';
-    } catch {
-      return '';
-    }
-  }
-
   destroy(): void {
     for (const view of this.views.values()) {
       if (!this.host.isDestroyed()) this.host.contentView.removeChildView(view);

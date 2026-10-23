@@ -3,6 +3,7 @@
  * This module must stay free of Electron and Node imports.
  */
 
+import type { SongCredit } from './lyrics';
 import type { ResearchSource } from './research';
 import type { Settings } from './settings';
 
@@ -55,6 +56,8 @@ export type ProgramState =
       index: number;
       /** Set for research text: where it comes from, shown under every slide. Null for song lyrics. */
       source: ResearchSource | null;
+      /** Song lyrics: title, composer and date as the page states them; null when it names nobody. */
+      credit: SongCredit | null;
     };
 
 export interface Playback {

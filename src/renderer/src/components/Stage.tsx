@@ -1,5 +1,5 @@
 import type { AppSnapshot } from '../../../shared/types';
-import { formatSourceLine } from '../../../shared/research';
+import { slideFooter } from '../../../shared/research';
 import { lyricsStyleFor } from '../../../shared/settings';
 import { LyricsStage } from './LyricsStage';
 
@@ -18,7 +18,7 @@ export function Stage({ snap, imageSrc, clean }: { snap: AppSnapshot; imageSrc: 
       <LyricsStage
         text={p.slides[p.index] ?? ''}
         style={lyricsStyleFor(snap.settings, p.source !== null)}
-        source={p.source ? formatSourceLine(p.source) : null}
+        source={slideFooter(p)}
       />
     );
   }

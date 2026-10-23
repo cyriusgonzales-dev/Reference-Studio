@@ -61,7 +61,17 @@ export const researchPickSchema = z.discriminatedUnion('type', [
     src: z.string().refine(isAllowedImageUrl, 'Unsupported image URL')
   }),
   z.object({ type: z.literal('video'), href: httpUrl, title: z.string().max(500) }),
-  z.object({ type: z.literal('lyrics'), text: z.string().max(MAX_LYRICS_TEXT), pageTitle: z.string().max(500) }),
+  z.object({
+    type: z.literal('lyrics'),
+    text: z.string().max(MAX_LYRICS_TEXT),
+    pageTitle: z.string().max(500),
+    /** True when the operator asked for the selection (button or menu), so an empty one is reported. */
+    explicit: z.boolean().optional(),
+    credit: z
+      .object({ title: pageText(), composer: pageText(), lyricist: pageText(), writers: pageText(), date: pageText(100) })
+      .nullable()
+      .optional()
+  }),
   z.object({
     type: z.literal('research'),
     text: z.string().max(MAX_LYRICS_TEXT),
