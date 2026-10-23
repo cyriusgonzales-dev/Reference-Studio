@@ -10,7 +10,8 @@ import { RESEARCH_COLLECT_CHANNEL, RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL 
  *                 Google reveals in its preview pane).
  *  - YouTube tab: a clicked video link. The click is cancelled so the search
  *                 results stay open; the video plays in panel 2 instead.
- *  - Lyrics tab:  highlighted text.
+ *  - Lyrics tab:  highlighted text. On Google results it also hides everything
+ *                 below the first web result that is not a lyrics page.
  *  - Research tab: highlighted text, with the source details the page itself
  *                 declares (publisher, title, publication date).
  *
@@ -180,6 +181,115 @@ function reportSelection(event: Event): void {
   }, 120);
 }
 
+/*
+ * On Google's results for a song, everything above the first web result stays
+ * (the AI overview and Google's lyrics box). Below it, only results that are
+ * lyrics pages stay; videos, social posts and "People also search for" are
+ * hidden. Hiding is done with CSS on this page only; nothing is blocked.
+ */
+
+const VIDEO_OR_SOCIAL_HOST = /(^|\.)(youtube\.com|youtu\.be|tiktok\.com|facebook\.com|fb\.watch|instagram\.com|x\.com|twitter\.com|brainly\.[a-z.]+|quora\.com)$/i;
+const LYRICS_WORDS = /lyric|liriko|titik|letra|chords|paroles|songtext|hymn/i;
+const LYRICS_HOST = /(^|\.)(genius\.com|azlyrics\.com|musixmatch\.com|lyrics\.com|songlyrics\.com|lyricstranslate\.com|hymnal\.net|hymnary\.org|letras\.com)$/i;
+const HIDDEN_CLASS = 'vrs-lyrics-hidden';
+
+/** The site a result link leads to, looking through Google's "/url?q=" redirects. */
+function linkHost(a: HTMLAnchorElement): string {
+  const host = safeHost(a.href).toLowerCase();
+  if (isGoogleHost(host)) {
+    try {
+      const target = new URL(a.href).searchParams.get('q') ?? new URL(a.href).searchParams.get('url');
+      if (target && isWebUrl(target)) return safeHost(target).toLowerCase();
+    } catch {
+      /* ignore */
+    }
+  }
+  return host;
+}
+
+/** External result links in a block (Google's own links are ignored). */
+function externalLinks(block: Element): HTMLAnchorElement[] {
+  return Array.from(block.querySelectorAll<HTMLAnchorElement>('a[href]')).filter((a) => isWebUrl(a.href) && !isGoogleHost(linkHost(a)));
+}
+
+/** Google labels video and social results with the platform's name ("YouTube · Channel"), in every language. */
+const PLATFORM_LABEL = /(YouTube|TikTok|Facebook|Instagram)\s*·/;
+
+/** A strip of videos or images, or a single video/social post. */
+function isMediaBlock(block: Element): boolean {
+  if (block.querySelector('a[href*="udm=2"], a[href*="tbm=isch"]')) return true;
+  if (PLATFORM_LABEL.test(block.textContent ?? '')) return true;
+  const links = externalLinks(block);
+  return links.length > 0 && links.every((a) => VIDEO_OR_SOCIAL_HOST.test(linkHost(a)));
+}
+
+/**
+ * The site a web result belongs to. Google sometimes hides the address behind
+ * an opaque "/goto" link, so the address it shows under the title is used then.
+ */
+function resultHost(block: Element, link: HTMLAnchorElement): string {
+  const host = linkHost(link);
+  if (!isGoogleHost(host)) return host;
+  const shown = block.querySelector('cite')?.textContent?.trim().split(/\s/)[0] ?? '';
+  return safeHost(/^https?:\/\//i.test(shown) ? shown : `https://${shown}`).toLowerCase();
+}
+
+function isLyricsResult(block: Element): boolean {
+  const link = Array.from(block.querySelectorAll<HTMLAnchorElement>('a[href]')).find((a) => a.querySelector('h3'));
+  if (!link) return false;
+  const host = resultHost(block, link);
+  if (VIDEO_OR_SOCIAL_HOST.test(host) || PLATFORM_LABEL.test(block.textContent ?? '')) return false;
+  return LYRICS_HOST.test(host) || LYRICS_WORDS.test(`${link.querySelector('h3')?.textContent ?? ''} ${host}`);
+}
+
+/** Below the results: hides everything except the page numbers, which can share a container with other blocks. */
+function filterBelowResults(container: Element, depth: number): void {
+  for (const block of Array.from(container.children)) {
+    if (block.getAttribute('role') === 'navigation') continue;
+    const holdsPageNumbers = !!block.querySelector('[role="navigation"]');
+    block.classList.toggle(HIDDEN_CLASS, !holdsPageNumbers);
+    if (holdsPageNumbers && depth < 6) filterBelowResults(block, depth + 1);
+  }
+}
+
+function filterLyricsResults(): void {
+  const results = document.getElementById('rso');
+  if (!results) return;
+  let seenWebResult = false;
+  for (const block of Array.from(results.children)) {
+    const isWebResult = !!block.querySelector('a[href] h3');
+    let hide: boolean;
+    if (!seenWebResult && !isWebResult) hide = isMediaBlock(block);
+    else hide = !(isWebResult && isLyricsResult(block));
+    if (isWebResult) seenWebResult = true;
+    block.classList.toggle(HIDDEN_CLASS, hide);
+  }
+  const below = document.getElementById('botstuff');
+  if (below) filterBelowResults(below, 0);
+}
+
+function startLyricsFilter(): void {
+  if (!isGoogleHost(location.hostname) || location.pathname !== '/search') return;
+  // Only plain web searches: Images, Videos and other Google tabs are left alone.
+  const udm = new URLSearchParams(location.search).get('udm');
+  if ((udm && udm !== '0') || new URLSearchParams(location.search).get('tbm')) return;
+  const style = document.createElement('style');
+  style.textContent = `.${HIDDEN_CLASS} { display: none !important; }`;
+  let timer = 0;
+  const schedule = () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(filterLyricsResults, 100);
+  };
+  const start = () => {
+    document.head.appendChild(style);
+    filterLyricsResults();
+    // Google adds and replaces results after loading.
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
+}
+
 /* ------------------------------------------------------------------ */
 /* Research                                                            */
 /* ------------------------------------------------------------------ */
@@ -292,6 +402,7 @@ if (role === 'images') {
 } else if (role === 'youtube') {
   window.addEventListener('click', onVideoClick, true);
 } else if (role === 'lyrics') {
+  startLyricsFilter();
   window.addEventListener('mouseup', reportSelection, true);
   window.addEventListener('keyup', (e) => {
     if (e.shiftKey || e.key === 'Shift') reportSelection(e);

@@ -233,7 +233,8 @@ export class ResearchTabs {
       text = `${text} song lyrics`;
     }
     if (tab === 'research') text = researchQuery(text);
-    const mode = tab === 'images' ? 'images' : tab === 'youtube' ? 'youtube' : 'web';
+    // Research uses Google's "Web" filter so the results are only web pages to read and highlight.
+    const mode = tab === 'images' ? 'images' : tab === 'youtube' ? 'youtube' : tab === 'research' ? 'pages' : 'web';
     const url = resolveAddressInput(text, mode, 'google');
     if (!url) throw new Error('That address cannot be opened. Only web (http/https) addresses are allowed.');
     this.navigate(tab, url);

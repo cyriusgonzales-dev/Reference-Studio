@@ -1,4 +1,5 @@
-export type SearchMode = 'images' | 'youtube' | 'web';
+/** "pages" is Google's "Web" filter: web-page results only, without AI overviews, videos or panels. */
+export type SearchMode = 'images' | 'youtube' | 'web' | 'pages';
 export type SearchEngine = 'google' | 'duckduckgo' | 'bing';
 
 /** Largest data: image URL accepted for presentation (characters). */
@@ -59,6 +60,8 @@ export function buildSearchUrl(query: string, mode: SearchMode, engine: SearchEn
       return `https://www.google.com/search?tbm=isch&q=${q}`;
     case 'youtube':
       return `https://www.youtube.com/results?search_query=${q}`;
+    case 'pages':
+      return `https://www.google.com/search?udm=14&q=${q}`;
     case 'web':
       switch (engine) {
         case 'duckduckgo':
