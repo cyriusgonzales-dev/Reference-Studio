@@ -32,7 +32,7 @@ The in-app updater (Settings → Updates) reads the **latest published GitHub Re
 ### Vercel (download website)
 
 1. On vercel.com: **Add New → Project**, then import the GitHub repository.
-2. Set **Root Directory** to `website`. Framework preset: **Other**. Leave the build command empty.
+2. Leave every build setting at its default. The root `vercel.json` serves `website/public` and the functions in `api/` (thin wrappers around `website/api`), and skips installing or building the desktop app. Setting **Root Directory** to `website` also works, using `website/vercel.json`; keep the two `vercel.json` files in sync.
 3. Under **Environment Variables**, add:
    - `GITHUB_REPO` = `<owner>/<repo>` (required)
    - `GITHUB_TOKEN` = a fine-grained token with read-only access to the repo's *Contents* (optional; avoids GitHub's API rate limit on busy days)
