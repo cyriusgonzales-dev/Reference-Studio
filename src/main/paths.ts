@@ -11,8 +11,8 @@ export function preloadPath(name: 'main' | 'research' | 'outputPage' | 'audioTap
   return path.join(__dirname, '../preload', `${name}.cjs`);
 }
 
-/** "index" is the operator window; "output" is the offscreen page drawn for NDI. */
-export type AppPage = 'index' | 'output';
+/** "index" is the operator window; "settings" the Settings window; "output" the offscreen page drawn for NDI. */
+export type AppPage = 'index' | 'settings' | 'output';
 
 export function rendererPage(page: AppPage = 'index'): { kind: 'url'; url: string } | { kind: 'file'; file: string } {
   if (isDev && devServerUrl) return { kind: 'url', url: `${devServerUrl.replace(/\/$/, '')}/${page}.html` };

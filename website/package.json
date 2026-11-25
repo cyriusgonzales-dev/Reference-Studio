@@ -1,0 +1,12 @@
+{
+  "name": "vmix-reference-studio-website",
+  "private": true,
+  "type": "module",
+  "description": "Download website for Vmix Reference Studio, deployed on Vercel (Root Directory: website).",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

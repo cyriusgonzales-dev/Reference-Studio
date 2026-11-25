@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    Small-size version of build/icon.svg (used at 16–32 px: taskbar, tabs, title bars).
+    Heavier strokes, a larger leg and no effects, so the R stays sharp on few pixels.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#25207a"/>
+    </linearGradient>
+    <linearGradient id="leg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#a5b4fc"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="200" fill="url(#bg)"/>
+  <rect x="270" y="212" width="136" height="600" rx="28" fill="#fff"/>
+  <path fill="#fff" fill-rule="evenodd" d="M338 212 H592 A180 180 0 0 1 592 572 H338 Z M406 330 H582 A62 62 0 0 1 582 454 H406 Z"/>
+  <path d="M462 612 L630 570 L770 810 Z" fill="url(#leg)" stroke="url(#leg)" stroke-width="60" stroke-linejoin="round"/>
+</svg>

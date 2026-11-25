@@ -15,6 +15,8 @@ export interface EventPayloads {
   'app:focusSearch': null;
   /** JPEG preview of the NDI output for panel 3. */
   'app:outputFrame': Uint8Array;
+  /** Settings window: show this section. */
+  'app:settingsSection': 'general' | 'slides' | 'updates' | 'about';
 }
 
 type InvokeArgs<C extends InvokeChannel> = RequestOf<C> extends undefined ? [] : [payload: RequestOf<C>];

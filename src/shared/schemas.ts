@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { InvokeChannel } from './channels';
 import { MAX_LYRICS_TEXT } from './lyrics';
+import { NDI_NAME_PATTERN, SLIDE_FONTS } from './settings';
 import { isAllowedImageUrl, MAX_URL_LENGTH } from './urls';
 
 const none = z.undefined();
@@ -33,11 +34,32 @@ export const requestSchemas = {
     .object({
       lyricsScale: z.number().min(0.4).max(2.5),
       lyricsUppercase: z.boolean(),
-      adblockEnabled: z.boolean()
+      adblockEnabled: z.boolean(),
+      updatesAutoCheck: z.boolean(),
+      updatesAutoDownload: z.boolean(),
+      slides: z
+        .object({
+          fontFamily: z.enum(SLIDE_FONTS),
+          textColor: z.string().regex(/^#[0-9a-f]{6}$/i),
+          backgroundColor: z.string().regex(/^#[0-9a-f]{6}$/i),
+          vAlign: z.enum(['top', 'middle', 'bottom']),
+          hAlign: z.enum(['left', 'center', 'right']),
+          textShadow: z.boolean(),
+          linesPerSlide: z.number().int().min(1).max(8)
+        })
+        .partial()
+        .strict(),
+      ndiName: z.string().trim().regex(NDI_NAME_PATTERN, "Use letters, numbers, spaces and . _ - ' & + (up to 48 characters)."),
+      openAtLogin: z.boolean()
     })
     .partial()
     .strict(),
-  'adblock:update': none
+  'adblock:update': none,
+  'app:openSettings': z.object({ section: z.enum(['general', 'slides', 'updates', 'about']) }).partial().strict().optional(),
+  'app:openLogs': none,
+  'update:check': none,
+  'update:download': none,
+  'update:install': none
 } satisfies Record<InvokeChannel, z.ZodType>;
 
 export type RequestOf<C extends InvokeChannel> = z.input<(typeof requestSchemas)[C]>;

@@ -27,7 +27,7 @@ export function OutputPanels({ snap }: { snap: AppSnapshot }) {
         <span className="ellipsis grow muted" title={p.kind === 'empty' ? '' : p.title}>
           {p.kind === 'empty' ? 'Nothing selected' : p.title}
         </span>
-        <button className="btn sm danger" title="Clear panels 2 and 3 to black (Ctrl+Shift+B)" disabled={p.kind === 'empty'} onClick={() => run('program:clear')}>
+        <button className="btn sm danger" title={`Clear panels 2 and 3 to black (${snap.platform === 'darwin' ? '⇧⌘B' : 'Ctrl+Shift+B'})`} disabled={p.kind === 'empty'} onClick={() => run('program:clear')}>
           <Square size={12} /> Black
         </button>
       </div>

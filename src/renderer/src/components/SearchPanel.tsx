@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, BookOpen, Home, Image as ImageIcon, Music, RotateCw, Search, Shield, ShieldOff, Type, X, SquarePlay } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Home, Image as ImageIcon, Music, RotateCw, Search, Settings, Shield, ShieldOff, Type, X, SquarePlay } from 'lucide-react';
+import { shortcutLabels } from '../../../shared/shortcuts';
+import logoUrl from '../assets/logo.svg';
 import type { AppSnapshot, TabId } from '../../../shared/types';
 import { extractSearchQuery } from '../../../shared/urls';
 import { call, run } from '../lib/api';
@@ -67,15 +69,18 @@ export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRe
   };
 
   const adblock = snap.adblock;
+  const keys = shortcutLabels(snap.platform);
+  const updateWaiting = snap.update.state === 'downloaded' || (snap.update.state === 'available' && snap.update.mode !== 'disabled');
 
   return (
     <section className="search-panel" aria-label="Search">
       <nav className="tab-rail" aria-label="Search tabs">
+        <img className="rail-logo" src={logoUrl} alt="Vmix Reference Studio" title={`Vmix Reference Studio ${snap.version}`} width={34} height={34} />
         {TABS.map((t, i) => (
           <button
             key={t.id}
             className={t.id === tab ? 'active' : ''}
-            title={`${t.label} (Ctrl+${i + 1})`}
+            title={`${t.label} (${keys.tab(i + 1)})`}
             onClick={() => run('tab:select', { tab: t.id })}
             aria-current={t.id === tab ? 'page' : undefined}
           >
@@ -85,6 +90,15 @@ export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRe
           </button>
         ))}
         <div className="grow" />
+        <button
+          className="settings-button"
+          title={updateWaiting ? `Settings: version ${snap.update.latestVersion} is ready (${keys.settings})` : `Settings (${keys.settings})`}
+          onClick={() => run('app:openSettings', { section: updateWaiting ? 'updates' : 'general' })}
+        >
+          <Settings size={18} />
+          <span>Settings</span>
+          {updateWaiting ? <span className="update-dot" aria-label="Update available" /> : null}
+        </button>
         <button
           className={adblock.enabled ? 'adblock on' : 'adblock'}
           title={adblock.error ?? `Ad blocking ${adblock.enabled ? 'on' : 'off'} — click to turn ${adblock.enabled ? 'off' : 'on'}`}
@@ -97,10 +111,10 @@ export function SearchPanel({ snap, focusRequest }: { snap: AppSnapshot; focusRe
 
       <div className="search-main">
         <div className="toolbar">
-          <button className="btn icon" title="Back (Alt+←)" disabled={!state.canGoBack} onClick={() => run('tab:command', { tab, command: 'back' })}>
+          <button className="btn icon" title={`Back (${keys.back})`} disabled={!state.canGoBack} onClick={() => run('tab:command', { tab, command: 'back' })}>
             <ArrowLeft size={16} />
           </button>
-          <button className="btn icon" title="Forward (Alt+→)" disabled={!state.canGoForward} onClick={() => run('tab:command', { tab, command: 'forward' })}>
+          <button className="btn icon" title={`Forward (${keys.forward})`} disabled={!state.canGoForward} onClick={() => run('tab:command', { tab, command: 'forward' })}>
             <ArrowRight size={16} />
           </button>
           {state.loading ? (

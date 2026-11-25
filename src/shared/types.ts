@@ -104,6 +104,25 @@ export interface NdiStatus {
   message: string | null;
 }
 
+/** The in-app updater (Settings → Updates). */
+export interface UpdateStatus {
+  /**
+   * auto: downloads and installs inside the app.
+   * manual: the app can tell that an update exists, but it is installed from the website
+   *         (portable Windows build, or a macOS build that is not code-signed).
+   * disabled: development build.
+   */
+  mode: 'auto' | 'manual' | 'disabled';
+  state: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  currentVersion: string;
+  latestVersion: string | null;
+  /** Download progress, 0–100, while downloading. */
+  progress: number | null;
+  error: string | null;
+  /** ISO time of the last completed check. */
+  lastChecked: string | null;
+}
+
 export interface AppSnapshot {
   activeTab: TabId;
   tabs: Record<TabId, TabState>;
@@ -113,7 +132,11 @@ export interface AppSnapshot {
   settings: Settings;
   capture: CaptureInfo | null;
   ndi: NdiStatus;
+  update: UpdateStatus;
+  /** Start the app when the user signs in to the computer (installed app only). */
+  openAtLogin: boolean | null;
   version: string;
+  platform: 'win32' | 'darwin' | 'linux';
 }
 
 export type NotifyLevel = 'info' | 'success' | 'warning' | 'error';

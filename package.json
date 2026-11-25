@@ -2,9 +2,11 @@
   "name": "vmix-reference-studio",
   "productName": "Vmix Reference Studio",
   "version": "0.7.0",
-  "description": "Three-panel research and presentation app (search, player, vMix output) for live webinars.",
+  "description": "Search images, YouTube, song lyrics and trusted sources, and send them live to vMix over NDI. For Windows and macOS.",
   "main": "./out/main/index.js",
-  "author": "Vmix Reference Studio",
+  "author": {
+    "name": "Cyrius Gonzales"
+  },
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
@@ -17,17 +19,24 @@
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run lint && npm run test",
     "icon": "node scripts/generate-icon.mjs",
-    "package": "npm run build && node scripts/clean-release.mjs && electron-builder --win --x64",
-    "package:dir": "npm run build && node scripts/clean-release.mjs && electron-builder --win --x64 --dir"
+    "package": "npm run build && node scripts/clean-release.mjs && electron-builder --publish never",
+    "package:win": "npm run build && node scripts/clean-release.mjs && electron-builder --win --x64 --publish never",
+    "package:mac": "npm run build && node scripts/clean-release.mjs && electron-builder --mac --publish never",
+    "package:dir": "npm run build && node scripts/clean-release.mjs && electron-builder --dir --publish never",
+    "release:check": "node scripts/check-release-config.mjs",
+    "release": "npm run release:check && npm run build && electron-builder --publish always"
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "2.20.1",
     "@ghostery/adblocker-electron-preload": "2.20.1",
+    "electron-log": "5.4.4",
+    "electron-updater": "6.8.11",
     "koffi": "3.3.2",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@resvg/resvg-js": "2.6.2",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
@@ -45,5 +54,13 @@
     "typescript-eslint": "8.72.0",
     "vite": "7.3.7",
     "vitest": "4.1.12"
+  },
+  "homepage": "https://vmix-reference-studio.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-github-username/vmix-reference-studio.git"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

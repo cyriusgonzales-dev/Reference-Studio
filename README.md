@@ -1,6 +1,17 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="build/logo-dark.png" />
+    <img src="build/logo-light.png" width="560" alt="Vmix Reference Studio: Search · Present · Broadcast" />
+  </picture>
+</p>
+
 # Vmix Reference Studio
 
-A Windows app for live webinars: search Google Images, YouTube, song lyrics and research topics, and show the result on a clean panel that vMix captures. Everything runs in **one window with three panels**:
+[![CI](https://github.com/your-github-username/vmix-reference-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/your-github-username/vmix-reference-studio/actions/workflows/ci.yml)
+
+**Download:** https://vmix-reference-studio.vercel.app · Windows 10/11 and macOS 11+
+
+A Windows and macOS app for live webinars: search Google Images, YouTube, song lyrics and research topics, and show the result on a clean panel that vMix captures. Everything runs in **one window with three panels**:
 
 ```
 ┌──────────────────────────────────┬────────────────────────┐
@@ -34,14 +45,26 @@ A Windows app for live webinars: search Google Images, YouTube, song lyrics and 
 
 ### Keyboard shortcuts
 
-| Keys | Action |
-| --- | --- |
-| Ctrl+1 / Ctrl+2 / Ctrl+3 / Ctrl+4 | Images / YouTube / Lyrics / Research tab |
-| Ctrl+L | Go to the search box |
-| Alt+← / Alt+→ | Back / forward in the current tab |
-| ← / → (or Page Up / Page Down) | Previous / next lyrics slide, when a web page does not have focus |
-| Ctrl+Shift+← / Ctrl+Shift+→ | Previous / next lyrics slide, from anywhere |
-| Ctrl+Shift+B | Clear to black |
+| Windows | macOS | Action |
+| --- | --- | --- |
+| Ctrl+1 / 2 / 3 / 4 | ⌘1 / 2 / 3 / 4 | Images / YouTube / Lyrics / Research tab |
+| Ctrl+L | ⌘L | Go to the search box |
+| Alt+← / Alt+→ | ⌘[ / ⌘] | Back / forward in the current tab |
+| ← / → (or Page Up / Page Down) | ← / → | Previous / next lyrics slide, when a web page does not have focus |
+| Ctrl+Shift+← / → | ⇧⌘← / → | Previous / next lyrics slide, from anywhere |
+| Ctrl+Shift+B | ⇧⌘B | Clear to black |
+| Ctrl+, | ⌘, | Settings |
+
+### Settings and updates
+
+Open **Settings** with the gear button at the bottom of the left rail (or Ctrl+, / ⌘,):
+
+- **General:** open at login, ad blocking and its filter lists, the NDI source name (give each computer its own, so vMix tells them apart) and status, and the keyboard shortcuts.
+- **Slides:** how lyrics and research text look, with a live preview: font, size, colours, uppercase, shadow, position (top, middle, or bottom as a lower third), alignment and lines per slide. Presets: **Full screen**, **Lower third**, **Green screen** and **Blue screen** (key the background out in vMix).
+- **Updates:** the app checks for new versions shortly after start-up and then every few hours, and downloads them in the background. **It never restarts by itself:** a downloaded update installs when you click **Restart and install**, or the next time you quit. Automatic checking and downloading can each be turned off. A dot on the gear button means an update is waiting.
+- **About:** version, website, release notes and **Open logs folder** (send the log with a problem report).
+
+The portable Windows exe and unsigned macOS builds can't replace themselves. They still tell you when an update exists, and **Download from website** gets it.
 
 ## Setting up vMix
 
@@ -56,38 +79,52 @@ Notes:
 - Panel 3 is a live preview of exactly what NDI sends. When a video plays, the NDI picture shows only the video: no YouTube title, controls or captions.
 - NDI keeps working when the app window is minimised or covered.
 - NDI must be installed. vMix installs it in its own folder, so a computer with vMix needs nothing more. On a computer without vMix (for example, sending to vMix on another PC over the network), install the free **NDI Runtime / NDI Tools** from ndi.video. If NDI is missing, panel 3's header says so.
+- **On a Mac**, install **NDI Tools for Mac** from ndi.video. vMix runs on Windows, so the Mac sends to the vMix computer over the local network: in vMix, choose **Add Input → NDI** and pick `<MAC-NAME> (Vmix Reference Studio)`.
 - The computer's speakers also play the video sound. If you monitor through vMix, mute the speakers or lower the Windows volume for this app.
 - Alternative without NDI: vMix **Desktop Capture** of the display, cropped to panel 3. Hover over panel 3 to see the crop values; they change if the window is moved or resized.
 
 NDI® is a registered trademark of Vizrt NDI AB. The app uses the NDI library installed on the computer and does not include it.
 
-## Installing / building
+## Installing
 
-The installed app is in `%LOCALAPPDATA%\Programs\Vmix Reference Studio`, with a **Vmix Reference Studio** shortcut on the desktop.
+Download the installer from the website: https://vmix-reference-studio.vercel.app
 
-To build it yourself (requires Node.js 22 or newer):
+- **Windows:** run `Vmix-Reference-Studio-Setup-<version>.exe`. The app installs to `%LOCALAPPDATA%\Programs\Vmix Reference Studio` with Desktop and Start-menu shortcuts. A portable exe that needs no install is also available.
+- **macOS:** open the `.dmg` for your Mac (Apple silicon or Intel) and drag the app to **Applications**.
+
+Until the builds are code-signed, Windows SmartScreen may warn the first time (**More info → Run anyway**). macOS may refuse to open the app the first time: right-click it in Applications and choose **Open**, or use **System Settings → Privacy & Security → Open Anyway**.
+
+Settings live in `%APPDATA%\Vmix Reference Studio` (Windows) or `~/Library/Application Support/Vmix Reference Studio` (macOS). Updating or uninstalling keeps them.
+
+## Building from source
+
+Requires Node.js 22 or newer.
 
 ```bash
 npm install
-npm run dev        # run in development mode
-npm run check      # type checks, lint, unit tests
-npm run package    # empty release/, then build release/Vmix-Reference-Studio-Setup-<version>.exe and a portable .exe
+npm run dev          # run in development mode
+npm run check        # type checks, lint, unit tests
+npm run package:win  # Windows installer + portable exe in release/ (on Windows)
+npm run package:mac  # macOS .dmg + .zip for Apple silicon and Intel in release/ (on a Mac)
+npm run icon         # regenerate every icon from build/icon.svg
 ```
 
-The installer and portable exe are **not code-signed**, so Windows SmartScreen may warn the first time ("More info → Run anyway").
+Releases are built by GitHub Actions and published to GitHub Releases, where the in-app updater finds them. The download website in `website/` is deployed on Vercel. See **[docs/RELEASING.md](docs/RELEASING.md)** for the full release, signing and deployment steps.
 
 If you run `npm run dev` from a VS Code terminal and Electron starts as plain Node.js, unset the `ELECTRON_RUN_AS_NODE` variable VS Code sets. The packaged app ignores it.
 
 ## How it works (for developers)
 
-- **Electron + React + TypeScript**, built with electron-vite and packaged with electron-builder (NSIS installer + portable).
+- **Electron + React + TypeScript**, built with electron-vite and packaged with electron-builder (Windows: NSIS installer + portable; macOS: dmg + zip for arm64 and x64).
+- **Updates** use electron-updater against GitHub Releases (`src/main/updater.ts`). The Settings window (`src/main/settingsWindow.ts`, `src/renderer/src/settings`) is a separate window, because the search tabs and players are native views drawn above the main page. Logs go through electron-log (`src/main/logging.ts`).
+- **Platform differences** are kept small: NDI library discovery (`src/main/ndi/ndiLibrary.ts`), shortcuts (`src/shared/shortcuts.ts`), the macOS menu bar (`src/main/menu.ts`) and the browser user agent.
 - `src/main` is the main process and the single source of truth. It holds the four search tabs (`research/tabs.ts`), the program shown in panels 2/3 (`player/programController.ts`, state machine in `src/shared/program.ts`), settings and ad blocking.
 - Each search tab is a sandboxed `WebContentsView` without access to any app API. A small preload (`src/preload/research.ts`) reports only **genuine** clicks and text selections (`event.isTrusted`). The main process validates every message with zod and only accepts each tab's own kind of content.
 - Videos use YouTube's **official embedded player**, with two players: panel 2 (controls, muted) and an offscreen output player (video only, audible). The output player is re-aligned to panel 2 every 250 ms (`src/shared/sync.ts`).
 - **NDI output** (`src/main/output`, `src/main/ndi`): the program is rendered offscreen at 1920×1080 (an output page for images and lyrics, and the output YouTube player for video). Frames go to an NDI sender on a worker thread (the installed NDI library called through koffi), and a scaled JPEG preview goes to panel 3. The video's sound is captured from the output player with Web Audio (`src/preload/audioTap.ts`) and sent as NDI audio. If the owner disables embedding, the app retries with the YouTube watch page; only the surrounding page is hidden, and YouTube's player and branding are never altered.
 - Security: context isolation, sandboxing, no Node in any page, validated IPC with sender checks, a strict CSP for the app page, navigation and permission restrictions, and Electron fuses in the packaged exe (no `ELECTRON_RUN_AS_NODE`, no `NODE_OPTIONS`/`--inspect`, asar integrity).
 - Ad blocking uses Ghostery's maintained engine with EasyList/EasyPrivacy-based prebuilt lists, cached on disk.
-- Settings live in `%APPDATA%\Vmix Reference Studio\data\settings.json`, with an automatic backup and recovery if the file is damaged.
+- Settings live in `<userData>/data/settings.json`, with an automatic backup and recovery if the file is damaged.
 
 ## Known limitations
 

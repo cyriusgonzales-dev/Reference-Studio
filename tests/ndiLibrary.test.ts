@@ -15,15 +15,26 @@ describe('finding the NDI library', () => {
       fs.writeFileSync(path.join(vmix, 'Processing.NDI.Lib.dll'), '');
       const env = { ProgramFiles: path.join(root, 'pf'), 'ProgramFiles(x86)': path.join(root, 'x86'), NDI_RUNTIME_DIR_V6: runtime };
 
-      expect(findNdiLibrary(env)).toBe(path.join(vmix, 'Processing.NDI.Lib.dll'));
+      expect(findNdiLibrary(env, 'win32')).toBe(path.join(vmix, 'Processing.NDI.Lib.dll'));
       fs.writeFileSync(path.join(runtime, 'Processing.NDI.Lib.x64.dll'), '');
-      expect(findNdiLibrary(env)).toBe(path.join(runtime, 'Processing.NDI.Lib.x64.dll'));
+      expect(findNdiLibrary(env, 'win32')).toBe(path.join(runtime, 'Processing.NDI.Lib.x64.dll'));
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
 
   it('returns null when NDI is not installed', () => {
-    expect(findNdiLibrary({ ProgramFiles: 'Z:\none', 'ProgramFiles(x86)': 'Z:\none' })).toBeNull();
+    expect(findNdiLibrary({ ProgramFiles: 'Z:\none', 'ProgramFiles(x86)': 'Z:\none' }, 'win32')).toBeNull();
+  });
+
+  it('finds the macOS runtime through the NDI environment variable', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrs-ndi-mac-')).split(path.sep).join('/');
+    try {
+      const dylib = `${root}/libndi.dylib`;
+      fs.writeFileSync(dylib, '');
+      expect(findNdiLibrary({ NDI_RUNTIME_DIR_V6: root }, 'darwin')).toBe(dylib);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });

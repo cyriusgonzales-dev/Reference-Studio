@@ -8,6 +8,7 @@ import { RESEARCH_COLLECT_CHANNEL, RESEARCH_PICK_CHANNEL, RESEARCH_ROLE_CHANNEL 
 import { researchPickSchema, type ResearchPick } from '../shared/schemas';
 import type { OutputPageState } from '../shared/outputPage';
 import { defaultSettings, lyricsStyleFor, parseSettings, type Settings } from '../shared/settings';
+import { shortcutFor } from '../shared/shortcuts';
 import type { AppSnapshot, CaptureInfo, NotifyLevel, Rect, TabId } from '../shared/types';
 import { AdblockManager } from './adblock';
 import { adblockCacheDirectory, dataDirectory, isDev } from './paths';
@@ -15,7 +16,9 @@ import { NdiSender } from './ndi/ndiSender';
 import { OffscreenOutput } from './output/offscreenOutput';
 import { ProgramController } from './player/programController';
 import { ResearchTabs } from './research/tabs';
+import { SettingsWindow } from './settingsWindow';
 import { JsonStore } from './store/jsonStore';
+import { UpdateManager } from './updater';
 
 /**
  * The application's single source of truth in the main process. It owns the
@@ -33,7 +36,11 @@ export class Controller {
   readonly adblock: AdblockManager;
   readonly ndi: NdiSender;
   readonly output: OffscreenOutput;
+  readonly updates: UpdateManager;
+  readonly settingsWindow: SettingsWindow;
   private outputPageKey = '';
+  /** Cached: reading the OS login item on every snapshot would be wasteful. */
+  private openAtLogin: boolean | null = app.isPackaged ? app.getLoginItemSettings().openAtLogin : null;
 
   constructor(
     private readonly window: BrowserWindow,
@@ -64,7 +71,7 @@ export class Controller {
     });
 
     // NDI output: the program is rendered offscreen at 1920×1080 and sent to vMix; panel 3 previews it.
-    this.ndi = new NdiSender(() => this.scheduleBroadcast());
+    this.ndi = new NdiSender(this.settings.ndiName, () => this.scheduleBroadcast());
     this.output = new OffscreenOutput(this.ndi, (jpeg) => this.send('app:outputFrame', jpeg));
 
     this.program = new ProgramController(window, sessions.media, {
@@ -84,6 +91,13 @@ export class Controller {
       (date) => this.saveSettings({ ...this.settings, adblock: { ...this.settings.adblock, lastUpdated: date } })
     );
 
+    this.settingsWindow = new SettingsWindow(window);
+    this.updates = new UpdateManager(
+      () => this.settings.updates,
+      () => this.scheduleBroadcast(),
+      (level, message) => this.notify(level, message)
+    );
+
     // The research preload asks which tab it runs in, then reports clicks and selections.
     ipcMain.on(RESEARCH_ROLE_CHANNEL, (event) => {
       event.returnValue = this.trustedResearchTab(event) ?? '';
@@ -96,6 +110,7 @@ export class Controller {
 
   async start(): Promise<void> {
     this.ndi.start();
+    this.updates.start();
     await this.adblock.init();
   }
 
@@ -133,7 +148,10 @@ export class Controller {
       settings: this.settings,
       capture: this.captureInfo(),
       ndi: this.ndi.status,
-      version: app.getVersion()
+      update: this.updates.status,
+      openAtLogin: this.openAtLogin,
+      version: app.getVersion(),
+      platform: process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux'
     };
   }
 
@@ -146,8 +164,10 @@ export class Controller {
     });
   }
 
+  /** Sends an event to the operator window, and state events to the Settings window too. */
   send<E extends keyof EventPayloads>(channel: E, payload: EventPayloads[E]): void {
     if (!this.window.isDestroyed()) this.window.webContents.send(channel, payload);
+    if (channel === 'app:snapshot' || channel === 'app:notify') this.settingsWindow?.webContents?.send(channel, payload);
   }
 
   notify(level: NotifyLevel, message: string): void {
@@ -237,7 +257,7 @@ export class Controller {
       return;
     }
     if (!explicit && !isLyricsSelection(text)) return;
-    const slides = lyricsToSlides(text);
+    const slides = lyricsToSlides(text, this.settings.slides.linesPerSlide);
     if (slides.length === 0) {
       if (explicit) this.notify('warning', 'No lyrics text found in the selection.');
       return;
@@ -288,16 +308,44 @@ export class Controller {
     this.scheduleBroadcast();
   }
 
-  updateSettings(patch: { lyricsScale?: number; lyricsUppercase?: boolean; adblockEnabled?: boolean }): void {
+  updateSettings(patch: {
+    lyricsScale?: number;
+    lyricsUppercase?: boolean;
+    adblockEnabled?: boolean;
+    updatesAutoCheck?: boolean;
+    updatesAutoDownload?: boolean;
+    slides?: Partial<Settings['slides']>;
+    ndiName?: string;
+    openAtLogin?: boolean;
+  }): void {
+    if (patch.openAtLogin !== undefined) this.setOpenAtLogin(patch.openAtLogin);
     const next: Settings = {
       ...this.settings,
       ...(patch.lyricsScale !== undefined ? { lyricsScale: patch.lyricsScale } : {}),
       ...(patch.lyricsUppercase !== undefined ? { lyricsUppercase: patch.lyricsUppercase } : {}),
-      adblock: { ...this.settings.adblock, ...(patch.adblockEnabled !== undefined ? { enabled: patch.adblockEnabled } : {}) }
+      adblock: { ...this.settings.adblock, ...(patch.adblockEnabled !== undefined ? { enabled: patch.adblockEnabled } : {}) },
+      updates: {
+        autoCheck: patch.updatesAutoCheck ?? this.settings.updates.autoCheck,
+        autoDownload: patch.updatesAutoDownload ?? this.settings.updates.autoDownload
+      },
+      slides: { ...this.settings.slides, ...patch.slides },
+      ndiName: patch.ndiName ?? this.settings.ndiName
     };
     const adblockChanged = next.adblock.enabled !== this.settings.adblock.enabled;
+    const updatesChanged = JSON.stringify(next.updates) !== JSON.stringify(this.settings.updates);
     this.saveSettings(next);
     if (adblockChanged) void this.adblock.refresh();
+    if (updatesChanged) this.updates.preferencesChanged();
+    if (this.settings.ndiName !== this.ndi.status.sourceName) this.ndi.rename(this.settings.ndiName);
+  }
+
+  /** Registers the app with the OS to start at sign-in (Windows and macOS). */
+  private setOpenAtLogin(enabled: boolean): void {
+    if (!app.isPackaged) throw new Error('Opening at login is only available in the installed app.');
+    if (process.env['PORTABLE_EXECUTABLE_DIR']) throw new Error('The portable version cannot open at login. Use the installer.');
+    app.setLoginItemSettings({ openAtLogin: enabled });
+    this.openAtLogin = app.getLoginItemSettings().openAtLogin;
+    this.scheduleBroadcast();
   }
 
   selectTab(tab: TabId): void {
@@ -328,34 +376,35 @@ export class Controller {
   /* ---------------------------------------------------------------- */
 
   /**
-   * Shortcuts that work everywhere, including inside web pages. All use Ctrl or
-   * Alt, so typing and the websites' own keys are never intercepted.
+   * Shortcuts that work everywhere, including inside web pages. All use the
+   * platform's modifier (Ctrl, or ⌘ on macOS) or Alt, so typing and the
+   * websites' own keys are never intercepted. See src/shared/shortcuts.ts.
    */
   handleKey(input: Electron.Input, _source: 'web'): boolean {
-    const key = input.key.toLowerCase();
-    const ctrl = input.control && !input.alt && !input.meta;
-    if (ctrl && input.shift && key === 'b') {
-      this.program.dispatch({ type: 'clear' });
-      return true;
+    const action = shortcutFor(input, process.platform === 'darwin' ? 'darwin' : 'win32');
+    if (!action) return false;
+    switch (action.type) {
+      case 'clear':
+        this.program.dispatch({ type: 'clear' });
+        break;
+      case 'lyricsStep':
+        this.program.dispatch({ type: 'lyricsStep', delta: action.delta });
+        break;
+      case 'focusSearch':
+        this.window.webContents.focus();
+        this.send('app:focusSearch', null);
+        break;
+      case 'selectTab':
+        this.selectTab((['images', 'youtube', 'lyrics', 'research'] as const)[action.index]);
+        break;
+      case 'history':
+        this.tabs.command(this.tabs.active, action.direction);
+        break;
+      case 'openSettings':
+        this.settingsWindow.open();
+        break;
     }
-    if (ctrl && input.shift && (key === 'arrowright' || key === 'arrowleft')) {
-      this.program.dispatch({ type: 'lyricsStep', delta: key === 'arrowright' ? 1 : -1 });
-      return true;
-    }
-    if (ctrl && !input.shift && key === 'l') {
-      this.window.webContents.focus();
-      this.send('app:focusSearch', null);
-      return true;
-    }
-    if (ctrl && !input.shift && ['1', '2', '3', '4'].includes(key)) {
-      this.selectTab((['images', 'youtube', 'lyrics', 'research'] as const)[Number(key) - 1]!);
-      return true;
-    }
-    if (input.alt && !input.control && !input.meta && (key === 'arrowleft' || key === 'arrowright')) {
-      this.tabs.command(this.tabs.active, key === 'arrowleft' ? 'back' : 'forward');
-      return true;
-    }
-    return false;
+    return true;
   }
 
   /* ---------------------------------------------------------------- */
@@ -364,6 +413,8 @@ export class Controller {
 
   dispose(): void {
     if (this.tabSaveTimer) clearTimeout(this.tabSaveTimer);
+    this.updates.dispose();
+    this.settingsWindow.close();
     this.persistTabUrls();
     this.settingsStore.flush();
     this.program.destroy();

@@ -16,7 +16,47 @@ export interface Settings {
   lyricsScale: number;
   lyricsUppercase: boolean;
   adblock: { enabled: boolean; level: AdblockLevel; lastUpdated: string | null };
+  /** In-app updates. Updates never restart the app by themselves: they install on restart or quit. */
+  updates: { autoCheck: boolean; autoDownload: boolean };
+  /** How lyrics and research slides look in panels 2 and 3 (and on NDI). */
+  slides: SlideAppearance;
+  /** Name vMix lists as "<COMPUTER> (<ndiName>)". */
+  ndiName: string;
 }
+
+export type SlideFont = (typeof SLIDE_FONTS)[number];
+
+export interface SlideAppearance {
+  fontFamily: SlideFont;
+  textColor: string;
+  backgroundColor: string;
+  /** top / middle / bottom (bottom = lower third). */
+  vAlign: 'top' | 'middle' | 'bottom';
+  hAlign: 'left' | 'center' | 'right';
+  textShadow: boolean;
+  /** Longest slide made from one stanza of lyrics. */
+  linesPerSlide: number;
+}
+
+/** Fonts offered in Settings. Each falls back to the system font if it is not installed. */
+export const SLIDE_FONTS = ['Segoe UI', 'Arial', 'Helvetica Neue', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Impact'] as const;
+
+export const DEFAULT_NDI_NAME = 'Vmix Reference Studio';
+
+export function defaultSlideAppearance(): SlideAppearance {
+  return { fontFamily: 'Segoe UI', textColor: '#ffffff', backgroundColor: '#000000', vAlign: 'middle', hAlign: 'center', textShadow: true, linesPerSlide: 4 };
+}
+
+/** One-click looks in Settings → Slides. */
+export const SLIDE_PRESETS: Array<{ id: string; label: string; hint: string; appearance: Partial<SlideAppearance> }> = [
+  { id: 'fullscreen', label: 'Full screen', hint: 'White text centred on black', appearance: { textColor: '#ffffff', backgroundColor: '#000000', vAlign: 'middle', hAlign: 'center', textShadow: true } },
+  { id: 'lowerThird', label: 'Lower third', hint: 'Text at the bottom of the screen', appearance: { textColor: '#ffffff', backgroundColor: '#000000', vAlign: 'bottom', hAlign: 'center', textShadow: true, linesPerSlide: 2 } },
+  { id: 'greenScreen', label: 'Green screen', hint: 'For chroma key in vMix', appearance: { textColor: '#ffffff', backgroundColor: '#00b140', vAlign: 'bottom', hAlign: 'center', textShadow: false, linesPerSlide: 2 } },
+  { id: 'blueScreen', label: 'Blue screen', hint: 'For chroma key in vMix', appearance: { textColor: '#ffffff', backgroundColor: '#0047bb', vAlign: 'bottom', hAlign: 'center', textShadow: false, linesPerSlide: 2 } }
+];
+
+/** Characters NDI and vMix accept in a source name. */
+export const NDI_NAME_PATTERN = /^[\p{L}\p{N} ._\-'&+]{1,48}$/u;
 
 export const HOME_URLS: Record<TabId, string> = {
   images: 'https://www.google.com/imghp',
@@ -32,11 +72,29 @@ export function defaultSettings(): Settings {
     tabUrls: { ...HOME_URLS },
     lyricsScale: 1,
     lyricsUppercase: false,
-    adblock: { enabled: true, level: 'adsAndTracking', lastUpdated: null }
+    adblock: { enabled: true, level: 'adsAndTracking', lastUpdated: null },
+    updates: { autoCheck: true, autoDownload: true },
+    slides: defaultSlideAppearance(),
+    ndiName: DEFAULT_NDI_NAME
   };
 }
 
 const D = defaultSettings();
+const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i);
+
+/** Every field falls back on its own, so one bad value never resets the others. */
+export function slideAppearanceSchema() {
+  const d = defaultSlideAppearance();
+  return z.object({
+    fontFamily: z.enum(SLIDE_FONTS).catch('Segoe UI'),
+    textColor: hexColor.catch(d.textColor),
+    backgroundColor: hexColor.catch(d.backgroundColor),
+    vAlign: z.enum(['top', 'middle', 'bottom']).catch(d.vAlign),
+    hAlign: z.enum(['left', 'center', 'right']).catch(d.hAlign),
+    textShadow: z.boolean().catch(d.textShadow),
+    linesPerSlide: z.number().int().min(1).max(8).catch(d.linesPerSlide)
+  });
+}
 const url = (fallback: string) => z.string().max(4096).refine(isHttpUrl).catch(fallback);
 
 export const settingsSchema = z.object({
@@ -53,7 +111,15 @@ export const settingsSchema = z.object({
       level: z.enum(['adsAndTracking', 'full']).catch('adsAndTracking'),
       lastUpdated: z.string().max(64).nullable().catch(null)
     })
-    .catch(D.adblock)
+    .catch(D.adblock),
+  updates: z
+    .object({
+      autoCheck: z.boolean().catch(true),
+      autoDownload: z.boolean().catch(true)
+    })
+    .catch(D.updates),
+  slides: slideAppearanceSchema().catch(D.slides),
+  ndiName: z.string().trim().regex(NDI_NAME_PATTERN).catch(DEFAULT_NDI_NAME)
 });
 
 /** Parses anything (including garbage or an older file) into complete, valid settings. */
@@ -85,8 +151,15 @@ export const RESEARCH_BASE_STYLE: LyricsStyle = {
 
 export function lyricsStyleFor(settings: Settings, research = false): LyricsStyle {
   const base = research ? RESEARCH_BASE_STYLE : LYRICS_BASE_STYLE;
+  const look = settings.slides;
   return {
     ...base,
+    fontFamily: look.fontFamily,
+    textColor: look.textColor,
+    backgroundColor: look.backgroundColor,
+    vAlign: look.vAlign,
+    hAlign: look.hAlign,
+    textShadow: look.textShadow,
     fontSize: Math.round(base.fontSize * settings.lyricsScale),
     uppercase: settings.lyricsUppercase
   };

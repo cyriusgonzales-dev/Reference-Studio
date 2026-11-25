@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    Master logo for Vmix Reference Studio: an "R" monogram whose leg is a play
+    mark. build/icon-small.svg is the bolder version used at 16–32 px.
+    Edit these files, then run `npm run icon` to regenerate every app and website icon
+    and the full-logo images.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.25" cy="0.1" r="0.9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="0.7" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="228" fill="url(#sheen)"/>
+  <rect x="5" y="5" width="1014" height="1014" rx="223" fill="none" stroke="#fff" stroke-opacity="0.12" stroke-width="10"/>
+  <!-- R: stem and bowl -->
+  <rect x="318" y="248" width="100" height="528" rx="24" fill="#fff"/>
+  <path fill="#fff" fill-rule="evenodd" d="M368 248 H578 A160 160 0 0 1 578 568 H368 Z M418 340 H572 A68 68 0 0 1 572 476 H418 Z"/>
+  <!-- Diagonal leg drawn as a play mark pointing down-right -->
+  <path d="M470 600 L606 566 L724 768 Z" fill="url(#leg)" stroke="url(#leg)" stroke-width="44" stroke-linejoin="round"/>
+</svg>

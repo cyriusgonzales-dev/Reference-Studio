@@ -1,8 +1,23 @@
+# Dependencies and build output
 node_modules/
 out/
 dist/
 release/
 coverage/
+.vite/
+*.tsbuildinfo
+
+# Vercel
+.vercel/
+
+# Logs and OS files
 *.log
 .DS_Store
-.vite/
+Thumbs.db
+
+# Local secrets (never commit signing certificates or keys)
+.env
+.env.*
+*.p12
+*.pfx
+*.p8

@@ -1,128 +1,62 @@
-// Generates build/icon.png (512×512) and build/icon.ico (16–256 px) without
-// third-party dependencies: a rounded square with a blue→violet gradient, a
-// "play" triangle and three lyric lines. Run with `npm run icon`.
+// Renders every app and website icon from the master logo, build/icon.svg, and
+// its bolder small-size version, build/icon-small.svg (used at 32 px and below).
+// Run with `npm run icon` after editing either SVG, then commit the outputs.
+//
+//   build/icon.png              1024 px, full-bleed tile (Windows, Linux, general use)
+//   build/icon.ico              16–256 px (Windows exe, installer, shortcuts)
+//   build/icon-mac.png          1024 px on Apple's icon grid: 824 px tile with shadow (macOS .icns)
+//   src/renderer/src/assets/    logo.svg for the app's own UI
+//   build/logo-dark.png         full logo (icon + name) for dark backgrounds; logo-light.png for light ones
+//   website/public/             logo.svg, favicon.svg (small), favicon.ico, apple-touch-icon.png, icon-512.png, og-image.png
 import fs from 'node:fs';
 import path from 'node:path';
-import zlib from 'node:zlib';
+import { Resvg } from '@resvg/resvg-js';
 
-const OUT_DIR = path.resolve('build');
+const root = path.resolve();
+const master = fs.readFileSync(path.join(root, 'build/icon.svg'), 'utf8');
+const small = fs.readFileSync(path.join(root, 'build/icon-small.svg'), 'utf8');
+const inner = master.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
 
-function crc32(buf) {
-  let c;
-  const table = [];
-  for (let n = 0; n < 256; n++) {
-    c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    table[n] = c >>> 0;
-  }
-  let crc = 0xffffffff;
-  for (const b of buf) crc = table[(crc ^ b) & 0xff] ^ (crc >>> 8);
-  return (crc ^ 0xffffffff) >>> 0;
+function render(svg, width) {
+  return Buffer.from(new Resvg(svg, { fitTo: { mode: 'width', value: width }, font: { loadSystemFonts: true } }).render().asPng());
 }
 
-function chunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([len, body, crc]);
+/** The master scaled and placed inside a larger canvas. */
+function placed(canvasW, canvasH, x, y, size, extra = '', background = '') {
+  const s = size / 1024;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="${canvasW}" height="${canvasH}">
+${background}${extra}<g transform="translate(${x} ${y}) scale(${s})">${inner}</g></svg>`;
 }
 
-function encodePng(size, rgba) {
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // RGBA
-  const raw = Buffer.alloc((size * 4 + 1) * size);
-  for (let y = 0; y < size; y++) {
-    raw[y * (size * 4 + 1)] = 0;
-    rgba.copy(raw, y * (size * 4 + 1) + 1, y * size * 4, (y + 1) * size * 4);
-  }
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', ihdr),
-    chunk('IDAT', zlib.deflateSync(raw, { level: 9 })),
-    chunk('IEND', Buffer.alloc(0))
-  ]);
+/** macOS Big Sur+ grid: an 824 px tile centred on a 1024 px canvas, with a soft drop shadow. */
+function macIcon() {
+  const shadow = `<defs><filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter></defs>
+<rect x="100" y="112" width="824" height="824" rx="185" fill="#000" fill-opacity="0.35" filter="url(#sh)"/>`;
+  return placed(1024, 1024, 100, 100, 824, shadow);
 }
 
-/** Coverage-based shape tests in a unit square (0..1). */
-function insideRoundedRect(x, y, r) {
-  const cx = Math.min(Math.max(x, r), 1 - r);
-  const cy = Math.min(Math.max(y, r), 1 - r);
-  return (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+/** Social preview card (1200×630) for the website. */
+function ogImage() {
+  const bg = `<defs>
+  <linearGradient id="ogbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#140d2e"/></linearGradient>
+  <radialGradient id="ogglow" cx="0.2" cy="0.3" r="0.7"><stop offset="0" stop-color="#6366f1" stop-opacity="0.4"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="630" fill="url(#ogbg)"/><rect width="1200" height="630" fill="url(#ogglow)"/>
+<text x="440" y="285" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="66" font-weight="700" fill="#ffffff" letter-spacing="-1"><tspan font-weight="300" fill="#aab4cf">Vmix </tspan>Reference Studio</text>
+<text x="440" y="355" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="32" fill="#aab4cf">Search images, videos, lyrics and sources.</text>
+<text x="440" y="400" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="32" fill="#aab4cf">Send them live to vMix over NDI.</text>
+<text x="440" y="480" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="600" fill="#a5b4fc" letter-spacing="4">SEARCH · PRESENT · BROADCAST</text>`;
+  return placed(1200, 630, 110, 175, 280, '', bg);
 }
 
-function insideTriangle(x, y, [ax, ay], [bx, by], [cx, cy]) {
-  const s = (p1x, p1y, p2x, p2y, p3x, p3y) => (p1x - p3x) * (p2y - p3y) - (p2x - p3x) * (p1y - p3y);
-  const d1 = s(x, y, ax, ay, bx, by);
-  const d2 = s(x, y, bx, by, cx, cy);
-  const d3 = s(x, y, cx, cy, ax, ay);
-  const neg = d1 < 0 || d2 < 0 || d3 < 0;
-  const pos = d1 > 0 || d2 > 0 || d3 > 0;
-  return !(neg && pos);
-}
-
-function insideBar(x, y, x0, x1, yc, h) {
-  if (y < yc - h / 2 || y > yc + h / 2) return false;
-  const r = h / 2;
-  if (x < x0 + r) return (x - (x0 + r)) ** 2 + (y - yc) ** 2 <= r * r;
-  if (x > x1 - r) return (x - (x1 - r)) ** 2 + (y - yc) ** 2 <= r * r;
-  return true;
-}
-
-function render(size) {
-  const ss = 4; // supersampling per axis
-  const out = Buffer.alloc(size * size * 4);
-  const tri = [
-    [0.27, 0.24],
-    [0.27, 0.56],
-    [0.52, 0.4]
-  ];
-  for (let py = 0; py < size; py++) {
-    for (let px = 0; px < size; px++) {
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      let a = 0;
-      for (let sy = 0; sy < ss; sy++) {
-        for (let sx = 0; sx < ss; sx++) {
-          const x = (px + (sx + 0.5) / ss) / size;
-          const y = (py + (sy + 0.5) / ss) / size;
-          if (!insideRoundedRect(x, y, 0.2)) continue;
-          // Background gradient: #2563eb → #7c3aed along the diagonal.
-          const t = (x + y) / 2;
-          let cr = 0x25 + (0x7c - 0x25) * t;
-          let cg = 0x63 + (0x3a - 0x63) * t;
-          let cb = 0xeb + (0xed - 0xeb) * t;
-          const white =
-            insideTriangle(x, y, ...tri) ||
-            insideBar(x, y, 0.27, 0.73, 0.68, 0.06) ||
-            insideBar(x, y, 0.27, 0.62, 0.79, 0.06);
-          if (white) {
-            cr = 255;
-            cg = 255;
-            cb = 255;
-          }
-          r += cr;
-          g += cg;
-          b += cb;
-          a += 255;
-        }
-      }
-      const n = ss * ss;
-      const i = (py * size + px) * 4;
-      const coverage = a / n;
-      // Store straight (non-premultiplied) colour.
-      out[i] = coverage ? Math.round((r / n) * (255 / coverage)) : 0;
-      out[i + 1] = coverage ? Math.round((g / n) * (255 / coverage)) : 0;
-      out[i + 2] = coverage ? Math.round((b / n) * (255 / coverage)) : 0;
-      out[i + 3] = Math.round(coverage);
-    }
-  }
-  return encodePng(size, out);
+/** Full logo: icon + name + tagline, for README, press and slides. */
+function lockup(dark) {
+  const main = dark ? '#ffffff' : '#0b1020';
+  const sub = dark ? '#9aa4c4' : '#5b647d';
+  const font = 'font-family="Segoe UI, Helvetica Neue, Arial, sans-serif"';
+  const text = `<text x="232" y="128" ${font} font-size="84" font-weight="700" fill="${main}" letter-spacing="-1.5"><tspan font-weight="300" fill="${sub}">Vmix </tspan>Reference Studio</text>
+<text x="236" y="186" ${font} font-size="30" font-weight="600" fill="${sub}" letter-spacing="7">SEARCH · PRESENT · BROADCAST</text>`;
+  return placed(1240, 240, 20, 20, 200, text);
 }
 
 function encodeIco(pngs) {
@@ -146,8 +80,27 @@ function encodeIco(pngs) {
   return Buffer.concat([header, ...entries, ...pngs.map((p) => p.data)]);
 }
 
-fs.mkdirSync(OUT_DIR, { recursive: true });
-fs.writeFileSync(path.join(OUT_DIR, 'icon.png'), render(512));
-const sizes = [16, 24, 32, 48, 64, 128, 256];
-fs.writeFileSync(path.join(OUT_DIR, 'icon.ico'), encodeIco(sizes.map((size) => ({ size, data: render(size) }))));
-console.log('Wrote build/icon.png and build/icon.ico');
+/** Small sizes use the bold variant; larger ones the full-detail master. */
+const art = (size) => (size <= 32 ? small : master);
+const ico = (sizes) => encodeIco(sizes.map((size) => ({ size, data: render(art(size), size) })));
+
+function write(rel, data) {
+  const file = path.join(root, rel);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, data);
+  console.log(`  ${rel}`);
+}
+
+console.log('Rendering icons from build/icon.svg:');
+write('build/icon.png', render(master, 1024));
+write('build/icon.ico', ico([16, 24, 32, 48, 64, 128, 256]));
+write('build/icon-mac.png', render(macIcon(), 1024));
+write('src/renderer/src/assets/logo.svg', master);
+write('website/public/logo.svg', master);
+write('website/public/favicon.svg', small);
+write('website/public/favicon.ico', ico([16, 32, 48]));
+write('website/public/apple-touch-icon.png', render(master, 180));
+write('website/public/icon-512.png', render(master, 512));
+write('website/public/og-image.png', render(ogImage(), 1200));
+write('build/logo-dark.png', render(lockup(true), 1240));
+write('build/logo-light.png', render(lockup(false), 1240));

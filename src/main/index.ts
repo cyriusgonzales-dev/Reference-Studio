@@ -1,7 +1,9 @@
-import { app, session, type BrowserWindow } from 'electron';
+import { app, nativeTheme, session, type BrowserWindow } from 'electron';
 import { Controller } from './controller';
 import { registerIpc } from './ipc';
+import { initLogging } from './logging';
 import { createMainWindow } from './mainWindow';
+import { installAppMenu } from './menu';
 import { preloadPath } from './paths';
 import { installProtocolHandlers, registerPrivilegedSchemes } from './protocols';
 import {
@@ -19,6 +21,7 @@ import {
  */
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 app.setAppUserModelId('app.vmix-reference-studio');
+initLogging();
 
 registerPrivilegedSchemes();
 installGlobalWebContentsGuards();
@@ -37,6 +40,8 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(() => {
+    // The app is dark throughout; this also darkens the window title bars.
+    nativeTheme.themeSource = 'dark';
     hardenAppSession();
     const research = session.fromPartition(RESEARCH_PARTITION);
     const media = session.fromPartition(MEDIA_PARTITION);
@@ -50,6 +55,13 @@ if (!app.requestSingleInstanceLock()) {
     controller = new Controller(mainWindow, { research, media });
     registerIpc(controller, mainWindow);
     const ctl = controller;
+    installAppMenu({
+      openSettings: (section) => ctl.settingsWindow.open(section),
+      checkForUpdates: () => {
+        ctl.settingsWindow.open('updates');
+        void ctl.updates.check(true);
+      }
+    });
     mainWindow.webContents.on('before-input-event', (event, input) => {
       if (input.type === 'keyDown' && ctl.handleKey(input, 'web')) event.preventDefault();
     });

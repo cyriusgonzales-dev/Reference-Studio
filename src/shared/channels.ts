@@ -18,11 +18,28 @@ export const INVOKE_CHANNELS = [
   'program:clear',
   'program:lyrics',
   'settings:update',
-  'adblock:update'
+  'adblock:update',
+  'app:openSettings',
+  'app:openLogs',
+  'update:check',
+  'update:download',
+  'update:install'
 ] as const;
+
+/** The subset the Settings window may call (it has no panels to move or tabs to drive). */
+export const SETTINGS_WINDOW_CHANNELS: readonly InvokeChannel[] = [
+  'app:getSnapshot',
+  'app:openExternal',
+  'app:openLogs',
+  'settings:update',
+  'adblock:update',
+  'update:check',
+  'update:download',
+  'update:install'
+];
 
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
 
 /** Main → operator UI events. */
-export const EVENT_CHANNELS = ['app:snapshot', 'app:notify', 'app:focusSearch', 'app:outputFrame'] as const;
+export const EVENT_CHANNELS = ['app:snapshot', 'app:notify', 'app:focusSearch', 'app:outputFrame', 'app:settingsSection'] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];

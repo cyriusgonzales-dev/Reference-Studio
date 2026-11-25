@@ -15,7 +15,8 @@ const REMOTE_ALLOWED_PERMISSIONS = new Set(['fullscreen', 'clipboard-sanitized-w
 /** A Chrome user agent without the Electron and application tokens, so sites serve their normal layout. */
 export function browserUserAgent(): string {
   const major = (process.versions.chrome ?? '120').split('.')[0];
-  return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
+  const os = process.platform === 'darwin' ? 'Macintosh; Intel Mac OS X 10_15_7' : 'Windows NT 10.0; Win64; x64';
+  return `Mozilla/5.0 (${os}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
 }
 
 export function hardenRemoteSession(ses: Session): void {

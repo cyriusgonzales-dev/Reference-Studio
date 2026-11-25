@@ -1,11 +1,9 @@
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import type { NdiStatus } from '../../shared/types';
-import { findNdiLibrary } from './ndiLibrary';
+import { findNdiLibrary, ndiInstallHint } from './ndiLibrary';
 import type { WorkerIn, WorkerOut } from './ndiWorker';
 
-/** Name shown in vMix as "<COMPUTER> (Vmix Reference Studio)". */
-export const NDI_SOURCE_NAME = 'Vmix Reference Studio';
 /** Frames queued for the worker beyond this are dropped rather than buffered. */
 const MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -17,9 +15,29 @@ const MAX_FRAMES_IN_FLIGHT = 2;
 export class NdiSender {
   private worker: Worker | null = null;
   private inFlight = 0;
-  private statusValue: NdiStatus = { state: 'starting', sourceName: NDI_SOURCE_NAME, connections: 0, message: null };
+  private statusValue: NdiStatus;
 
-  constructor(private readonly onChange: () => void) {}
+  /** `sourceName` is shown in vMix as "<COMPUTER> (<sourceName>)". */
+  constructor(
+    private sourceName: string,
+    private readonly onChange: () => void
+  ) {
+    this.statusValue = { state: 'starting', sourceName, connections: 0, message: null };
+  }
+
+  /** Renames the source: the sender restarts, and vMix must pick the new name. */
+  rename(sourceName: string): void {
+    if (sourceName === this.sourceName) return;
+    this.sourceName = sourceName;
+    this.stop();
+    this.inFlight = 0;
+    this.statusValue = { state: 'starting', sourceName, connections: 0, message: null };
+    this.onChange();
+    // Give the old sender time to close so both names are never announced at once.
+    setTimeout(() => {
+      if (this.sourceName === sourceName && !this.worker) this.start();
+    }, 600);
+  }
 
   get status(): NdiStatus {
     return this.statusValue;
@@ -30,11 +48,11 @@ export class NdiSender {
     if (!libraryPath) {
       this.update({
         state: 'unavailable',
-        message: 'NDI is not installed. Install the free NDI Runtime from ndi.video (or vMix on this computer), then restart the app.'
+        message: ndiInstallHint()
       });
       return;
     }
-    const worker = new Worker(path.join(__dirname, 'ndiWorker.js'), { workerData: { libraryPath, sourceName: NDI_SOURCE_NAME } });
+    const worker = new Worker(path.join(__dirname, 'ndiWorker.js'), { workerData: { libraryPath, sourceName: this.sourceName } });
     this.worker = worker;
     worker.on('message', (msg: WorkerOut) => {
       switch (msg.type) {

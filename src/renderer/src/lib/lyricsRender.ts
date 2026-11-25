@@ -26,7 +26,7 @@ export function applyLyricsStyle(stage: HTMLElement, text: HTMLElement, style: L
   stage.style.overflow = 'hidden';
   stage.style.position = stage.style.position || 'relative';
 
-  text.style.fontFamily = `"${style.fontFamily.replace(/"/g, '')}", "Segoe UI", Arial, sans-serif`;
+  text.style.fontFamily = `"${style.fontFamily.replace(/"/g, '')}", "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif`;
   text.style.fontWeight = String(style.fontWeight);
   text.style.color = style.textColor;
   text.style.lineHeight = String(style.lineHeight);
@@ -51,7 +51,7 @@ export function applySourceStyle(line: HTMLElement, style: LyricsStyle, stageHei
     left: `${style.marginPercent}%`,
     right: `${style.marginPercent}%`,
     bottom: `${30 * unit}px`,
-    fontFamily: '"Segoe UI", Arial, sans-serif',
+    fontFamily: '"Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif',
     fontSize: `${32 * unit}px`,
     fontWeight: '500',
     lineHeight: '1.3',

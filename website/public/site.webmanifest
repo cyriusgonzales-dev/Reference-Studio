@@ -1,0 +1,12 @@
+{
+  "name": "Vmix Reference Studio",
+  "short_name": "Reference Studio",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "theme_color": "#070a14",
+  "background_color": "#070a14",
+  "display": "standalone",
+  "start_url": "/"
+}
