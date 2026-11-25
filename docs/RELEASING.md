@@ -60,7 +60,7 @@ git push --follow-tags        # starts the Release workflow
    - `Vmix-Reference-Studio-1.2.3-portable.exe`
    - `Vmix-Reference-Studio-1.2.3-mac-arm64.dmg` / `-mac-x64.dmg` (downloads)
    - `Vmix-Reference-Studio-1.2.3-mac-arm64.zip` / `-mac-x64.zip`, `latest-mac.yml` (macOS update feed)
-2. Open the draft on GitHub → **Releases**, write the release notes (copy them from `CHANGELOG.md`), then click **Publish release**.
+2. When both platforms have uploaded, the workflow **publishes the release automatically**, using that version's section of `CHANGELOG.md` as the release notes. So rename `## Unreleased` to the new version number in `CHANGELOG.md` before tagging.
 3. Within a few minutes the website shows the new version, and installed apps find it on their next check (shortly after start-up, then every 4 hours, or straight away with **Check for updates**).
 
 **Do not delete or rename assets** in a published release. `latest.yml` and `latest-mac.yml` hold their checksums.

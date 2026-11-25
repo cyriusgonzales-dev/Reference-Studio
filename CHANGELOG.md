@@ -2,7 +2,7 @@
 
 All notable changes to Vmix Reference Studio. Copy the section for a version into its GitHub release notes.
 
-## Unreleased
+## 0.8.0
 
 ### Added
 - **macOS app** for Apple silicon and Intel Macs. It sends NDI to vMix on another computer over the network and uses the NDI runtime from NDI Tools for Mac.

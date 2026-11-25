@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Vmix Reference Studio: show it live in one click</title>
-    <meta name="description" content="Search images, YouTube, song lyrics and trusted sources, and send them live to vMix over NDI in full HD with sound. For Windows and macOS." />
-    <meta name="theme-color" content="#070a14" />
+    <title>Vmix Reference Studio · Images, video, lyrics and sources for vMix</title>
+    <meta name="description" content="A search desk for live production. Find images, YouTube videos, song lyrics and sourced quotes, and send them to vMix as a clean 1080p NDI feed with sound. For Windows and macOS." />
+    <meta name="theme-color" content="#0c0d0f" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -13,7 +13,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Vmix Reference Studio" />
-    <meta property="og:description" content="Search images, videos, lyrics and sources. Send them live to vMix over NDI." />
+    <meta property="og:description" content="Images, video, lyrics and sources, sent straight to vMix over NDI." />
     <meta property="og:image" content="/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -21,7 +21,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/main.js" defer></script>
   </head>
@@ -31,12 +31,13 @@
     <header class="nav" id="top">
       <div class="wrap nav-inner">
         <a class="brand" href="#top" aria-label="Vmix Reference Studio home">
-          <img src="/favicon.svg" alt="" width="32" height="32" />
-          <span class="wordmark"><em>Vmix</em> Reference Studio</span>
+          <img src="/favicon.svg" alt="" width="28" height="28" />
+          <span>Vmix Reference Studio</span>
         </a>
         <nav class="nav-links" aria-label="Main">
-          <a href="#features">Features</a>
-          <a href="#how">How it works</a>
+          <a href="#sources">Sources</a>
+          <a href="#signal">Signal path</a>
+          <a href="#specs">Specs</a>
           <a href="#faq">FAQ</a>
           <a class="btn btn-small" href="#download">Download</a>
         </nav>
@@ -46,33 +47,32 @@
     <main id="main">
       <!-- Hero -->
       <section class="hero">
-        <div class="glow" aria-hidden="true"></div>
-        <div class="wrap hero-inner">
-          <p class="eyebrow"><span class="onair" aria-hidden="true"></span> For live webinars, services and streams</p>
-          <h1>Show it live.<br /><span class="grad">In one click.</span></h1>
-          <p class="lead">
-            Search images, YouTube, song lyrics and trusted sources, then click. It's on your vMix output instantly: clean, full HD and with sound, over NDI.
-          </p>
-          <div class="cta" data-download-cta>
-            <a class="btn btn-primary btn-large" href="/download/windows" data-primary>
-              <svg class="os" data-os-icon viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7H3zm8.5-1.1L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z" fill="currentColor"/></svg>
-              <span data-primary-label>Download for Windows</span>
-            </a>
-            <a class="btn btn-ghost btn-large" href="#download" data-secondary>Other platforms</a>
+        <div class="wrap hero-grid">
+          <div class="hero-copy">
+            <p class="kicker"><span class="tally" aria-hidden="true"></span>For live services, webinars and streams</p>
+            <h1>Images, video, lyrics and sources, sent straight to vMix.</h1>
+            <p class="lead">
+              A search desk for the production booth. Find what the speaker just mentioned, check it in preview, and send a clean 1080p NDI feed with sound to your switcher.
+            </p>
+            <div class="cta">
+              <a class="btn btn-primary btn-large" href="/download/windows" data-primary>
+                <svg class="os" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7H3zm8.5-1.1L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z" fill="currentColor"/></svg>
+                <span data-primary-label>Download for Windows</span>
+              </a>
+              <a class="btn btn-large" href="#download" data-secondary>All downloads</a>
+            </div>
+            <p class="meta" data-hero-meta>Windows 10/11 · macOS 11 or later · Free updates built in</p>
           </div>
-          <p class="meta" data-hero-meta>Windows 10/11 · macOS 11 or later · Free updates built in</p>
 
-          <!-- Product mockup: the app's three panels -->
-          <div class="mock" role="img" aria-label="The app: search results on the left, the player in the top right, and the live vMix output below it">
+          <!-- Product mockup: search on the left, preview and program output on the right -->
+          <div class="mock" role="img" aria-label="The app: lyrics search results on the left, the preview player top right and the live vMix output below it">
             <div class="mock-bar"><span></span><span></span><span></span><em>Vmix Reference Studio</em></div>
             <div class="mock-body">
-              <div class="mock-rail">
-                <i class="on"></i><i></i><i></i><i></i>
-              </div>
               <div class="mock-search">
-                <div class="mock-input">Amazing Grace <b>Search</b></div>
+                <div class="mock-tabs"><i>Images</i><i>YouTube</i><i class="on">Lyrics</i><i>Research</i></div>
+                <div class="mock-input">Amazing Grace</div>
                 <div class="mock-lyrics">
-                  <p class="t">Amazing Grace lyrics</p>
+                  <p class="t">Amazing Grace · John Newton</p>
                   <p><mark>Amazing grace, how sweet the sound</mark></p>
                   <p><mark>That saved a wretch like me</mark></p>
                   <p><mark>I once was lost, but now am found</mark></p>
@@ -82,12 +82,11 @@
                 </div>
               </div>
               <div class="mock-out">
-                <div class="mock-head"><b>2</b> Player</div>
+                <div class="mock-head"><span class="lbl pvw">PVW</span> Player <span class="mock-count">Slide 1 / 4</span></div>
                 <div class="mock-stage">
                   <p>Amazing grace, how sweet the sound<br />That saved a wretch like me</p>
                 </div>
-                <div class="mock-dots"><i class="on">1</i><i>2</i><i>3</i><i>4</i></div>
-                <div class="mock-head"><b class="live">3</b> vMix output <span class="chip">NDI · 1 receiving</span></div>
+                <div class="mock-head"><span class="lbl pgm">PGM</span> vMix output <span class="mock-count">NDI · 1 receiving</span></div>
                 <div class="mock-stage live">
                   <p>Amazing grace, how sweet the sound<br />That saved a wretch like me</p>
                 </div>
@@ -95,131 +94,157 @@
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- Four tabs -->
-      <section class="section" id="features">
         <div class="wrap">
-          <h2 class="reveal">One search. Four ways to show it.</h2>
-          <p class="sub reveal">Type once and every tab searches the same words. Switch tabs to pick what goes on screen.</p>
-          <div class="cards">
-            <article class="card reveal">
-              <div class="icon i-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg></div>
-              <h3>Images</h3>
-              <p>Click any Google Images result and it's on screen. The full-size picture replaces the thumbnail automatically.</p>
-            </article>
-            <article class="card reveal">
-              <div class="icon i-red"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="m10 9 5 3-5 3z" class="fill"/></svg></div>
-              <h3>YouTube</h3>
-              <p>Click a video to play it with YouTube's controls. The output shows only the picture, in sync, with the sound.</p>
-            </article>
-            <article class="card reveal">
-              <div class="icon i-violet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-              <h3>Lyrics</h3>
-              <p>Highlight the lyrics on the page and they become clean slides. Step through them with the arrow keys. Song credits are shown when the page names them.</p>
-            </article>
-            <article class="card reveal">
-              <div class="icon i-cyan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h8M8 11h6"/></svg></div>
-              <h3>Research</h3>
-              <p>Highlight text on a trusted page and it's shown with its source: site, title and date, read from the page itself and never guessed.</p>
-            </article>
-          </div>
+          <dl class="specbar">
+            <div><dt>Output</dt><dd>1920 × 1080</dd></div>
+            <div><dt>Frame rate</dt><dd>Up to 30 fps</dd></div>
+            <div><dt>Transport</dt><dd>NDI® with audio</dd></div>
+            <div><dt>Platforms</dt><dd>Windows · macOS</dd></div>
+          </dl>
         </div>
       </section>
 
-      <!-- How it works -->
-      <section class="section alt" id="how">
+      <!-- Sources -->
+      <section class="section" id="sources">
         <div class="wrap">
-          <h2 class="reveal">From search to screen in seconds.</h2>
-          <p class="sub reveal">No screen cropping and no second monitor. The app sends its own clean output straight into vMix.</p>
-          <ol class="steps">
-            <li class="reveal"><span>1</span><h3>Search</h3><p>Type a word, a song title or a topic. All four tabs search at once.</p></li>
-            <li class="reveal"><span>2</span><h3>Click or highlight</h3><p>Click an image or video, or highlight lyrics or text. Panel 2 shows it with controls.</p></li>
-            <li class="reveal"><span>3</span><h3>It's live in vMix</h3><p>Add the app as an <strong>NDI</strong> input once. Your audience sees a clean 1080p picture with sound.</p></li>
+          <header class="section-head">
+            <p class="label">Sources</p>
+            <h2 class="reveal">Type once. Four places to look.</h2>
+            <p class="sub reveal">Every tab searches the same words, so switching from a picture to the lyrics to a quote takes one click.</p>
+          </header>
+          <ol class="rows">
+            <li class="reveal">
+              <span class="num">01</span>
+              <h3>Images</h3>
+              <p>Click a Google Images result and it goes to air. The full-resolution picture replaces the thumbnail automatically.</p>
+            </li>
+            <li class="reveal">
+              <span class="num">02</span>
+              <h3>YouTube</h3>
+              <p>Play a video with YouTube's own controls. The output carries only the picture, in sync, with the sound on the same NDI input.</p>
+            </li>
+            <li class="reveal">
+              <span class="num">03</span>
+              <h3>Lyrics</h3>
+              <p>Highlight the lyrics on the page and they become clean slides you step through with the arrow keys. Song credits are added when the page names them.</p>
+            </li>
+            <li class="reveal">
+              <span class="num">04</span>
+              <h3>Research</h3>
+              <p>Highlight text on a trusted page and it is shown with its site, title and date, read from the page itself. Text with no single source, such as AI summaries, is refused.</p>
+            </li>
           </ol>
         </div>
       </section>
 
-      <!-- Built for live -->
-      <section class="section">
+      <!-- Signal path -->
+      <section class="section band" id="signal">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="label">Signal path</p>
+            <h2 class="reveal">No screen capture. No second monitor.</h2>
+            <p class="sub reveal">The app renders its own clean output and sends it to vMix over your network. Add it as an input once and leave it there.</p>
+          </header>
+          <ol class="chain reveal" aria-label="Signal path from search to vMix">
+            <li><span class="node-k">Search</span><b>Find it</b><small>Images, YouTube, lyrics, research</small></li>
+            <li><span class="node-k">Preview</span><b>Check it</b><small>Player with controls, slide by slide</small></li>
+            <li><span class="node-k">NDI out</span><b>Send it</b><small>1080p, up to 30 fps, with audio</small></li>
+            <li class="end"><span class="node-k">vMix</span><b>Air it</b><small>Add Input → NDI → your computer</small></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Specs -->
+      <section class="section" id="specs">
         <div class="wrap split">
-          <div>
-            <h2 class="reveal">Built for live production.</h2>
-            <p class="sub left reveal">Made for operators who can't afford surprises in the middle of a show.</p>
-          </div>
-          <ul class="checks">
-            <li class="reveal"><b>Full HD NDI output with audio.</b> 1920×1080 at up to 30 fps, with the video's sound on the same input.</li>
-            <li class="reveal"><b>Keeps running in the background.</b> The output never freezes when the window is covered or minimised.</li>
-            <li class="reveal"><b>Slides that match your show.</b> Choose the font, colours, position and lines per slide, or one-click looks like lower third and green screen for chroma key.</li>
-            <li class="reveal"><b>One-key black.</b> Clear the output instantly from anywhere in the app.</li>
-            <li class="reveal"><b>Many computers, one network.</b> Give each computer its own NDI name so vMix tells them apart.</li>
-            <li class="reveal"><b>Fewer distractions.</b> Built-in ad and tracker blocking, with one click to turn it off.</li>
-            <li class="reveal"><b>Updates that wait for you.</b> New versions download quietly and install only when you restart, never during a show.</li>
-            <li class="reveal"><b>Honest sources.</b> Research text always carries where it came from. Text with no single source, such as AI summaries, is refused.</li>
-          </ul>
+          <header class="section-head">
+            <p class="label">Built for the booth</p>
+            <h2 class="reveal">Made for operators who can't afford surprises.</h2>
+          </header>
+          <dl class="sheet">
+            <div class="reveal"><dt>Keeps running</dt><dd>The output never freezes when the window is covered or minimised.</dd></div>
+            <div class="reveal"><dt>One-key black</dt><dd>Clear the output instantly from anywhere in the app.</dd></div>
+            <div class="reveal"><dt>Slide styles</dt><dd>Font, colours, position and lines per slide, plus presets for lower thirds and green screen for chroma key.</dd></div>
+            <div class="reveal"><dt>Multiple machines</dt><dd>Give each computer its own NDI name so vMix tells them apart.</dd></div>
+            <div class="reveal"><dt>Clean pages</dt><dd>Built-in ad and tracker blocking, with one click to turn it off.</dd></div>
+            <div class="reveal"><dt>Safe updates</dt><dd>New versions download quietly and install only when you restart. Never during a show.</dd></div>
+          </dl>
         </div>
       </section>
 
       <!-- Download -->
-      <section class="section download" id="download">
+      <section class="section band" id="download">
         <div class="wrap">
-          <h2 class="reveal">Get Vmix Reference Studio.</h2>
-          <p class="sub reveal" data-version-line>The latest version for Windows and macOS.</p>
+          <header class="section-head">
+            <p class="label">Download</p>
+            <h2 class="reveal">Get Vmix Reference Studio.</h2>
+            <p class="sub reveal" data-version-line>The latest version for Windows and macOS.</p>
+          </header>
           <div class="dl-grid">
             <article class="dl-card reveal" data-platform="windows">
-              <svg class="dl-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7H3zm8.5-1.1L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z" fill="currentColor"/></svg>
+              <div class="dl-top">
+                <svg class="dl-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7H3zm8.5-1.1L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z" fill="currentColor"/></svg>
+                <span class="detected-tag">Your system</span>
+              </div>
               <h3>Windows</h3>
-              <p class="req">Windows 10 or 11, 64-bit</p>
-              <a class="btn btn-primary" href="/download/windows" data-asset="windows">Download installer</a>
+              <p class="req">Windows 10 or 11, 64-bit · .exe installer</p>
+              <a class="btn btn-primary" href="/download/windows" data-asset="windows">Download for Windows</a>
               <p class="size" data-size="windows">&nbsp;</p>
               <a class="alt-link" href="/download/windows-portable" data-asset="windowsPortable">Portable version (no install, no auto-update)</a>
             </article>
             <article class="dl-card reveal" data-platform="mac">
-              <svg class="dl-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.8-1.1-2.8-4.3zM13.9 5.3c.7-.8 1.2-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1.1 3 1.1.1 2.3-.6 3-1.4z"/></svg>
+              <div class="dl-top">
+                <svg class="dl-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.8-1.1-2.8-4.3zM13.9 5.3c.7-.8 1.2-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1.1 3 1.1.1 2.3-.6 3-1.4z"/></svg>
+                <span class="detected-tag">Your system</span>
+              </div>
               <h3>macOS</h3>
-              <p class="req">macOS 11 Big Sur or later</p>
+              <p class="req">macOS 11 Big Sur or later · .dmg disk image</p>
               <a class="btn btn-primary" href="/download/mac" data-asset="macArm">Download for Apple silicon</a>
               <p class="size" data-size="macArm">&nbsp;</p>
               <a class="alt-link" href="/download/mac-intel" data-asset="macIntel">Download for Intel Macs</a>
             </article>
           </div>
           <p class="fine reveal">
-            Requires the free <a href="https://ndi.video/tools/" rel="noopener" target="_blank">NDI Runtime / NDI Tools</a> (already included with vMix on Windows).
+            Needs the free <a href="https://ndi.video/tools/" rel="noopener" target="_blank">NDI Runtime / NDI Tools</a> (already installed with vMix on Windows).
             <a href="https://github.com/cyriusgonzales-dev/Reference-Studio/releases/latest" data-notes-link target="_blank" rel="noopener">Release notes</a>
           </p>
         </div>
       </section>
 
       <!-- FAQ -->
-      <section class="section alt" id="faq">
-        <div class="wrap narrow">
-          <h2 class="reveal">Questions, answered.</h2>
+      <section class="section" id="faq">
+        <div class="wrap split">
+          <header class="section-head">
+            <p class="label">FAQ</p>
+            <h2 class="reveal">Before you install.</h2>
+          </header>
           <div class="faq">
-            <details class="reveal">
+            <details>
               <summary>What do I need to use it?</summary>
               <p>vMix on the production computer, and NDI on the computer running this app. vMix installs NDI for you, so on a vMix computer there's nothing extra to install. On another computer, install the free NDI Tools from ndi.video.</p>
             </details>
-            <details class="reveal">
+            <details>
               <summary>vMix is Windows-only. Why is there a Mac version?</summary>
               <p>NDI works over your local network. Run the app on a Mac, and the vMix computer on the same network will see it as an NDI source under <em>Add Input → NDI</em>.</p>
             </details>
-            <details class="reveal">
+            <details>
               <summary>How do I connect it to vMix?</summary>
               <p>Start the app, then in vMix choose <strong>Add Input → NDI / Desktop Capture</strong> and pick <strong>YOUR-PC (Vmix Reference Studio)</strong>. Turn on that input's audio in the vMix mixer to hear videos.</p>
             </details>
-            <details class="reveal">
+            <details>
               <summary>How do updates work?</summary>
               <p>The app checks for new versions in the background and downloads them quietly. It never restarts by itself: the update installs when you click <em>Restart and install</em> in Settings → Updates, or the next time you quit. You can turn automatic checks and downloads off in Settings.</p>
             </details>
-            <details class="reveal">
+            <details>
               <summary>Windows says "Windows protected your PC". Is it safe?</summary>
               <p>Windows shows this for new apps that don't have a paid code-signing certificate yet. Click <strong>More info → Run anyway</strong>. You only need to do it once.</p>
             </details>
-            <details class="reveal">
+            <details>
               <summary>macOS says the app "can't be opened". What do I do?</summary>
               <p>Open the <strong>Applications</strong> folder, right-click (or Control-click) Vmix Reference Studio and choose <strong>Open</strong>, then <strong>Open</strong> again. If macOS still refuses, go to <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>.</p>
             </details>
-            <details class="reveal">
+            <details>
               <summary>Can I show song lyrics on a public broadcast?</summary>
               <p>Lyrics belong to their publishers. Showing them publicly may require a licence (for example CCLI for churches). Getting that licence is the operator's responsibility.</p>
             </details>
@@ -230,27 +255,16 @@
 
     <footer class="footer">
       <div class="wrap footer-inner">
-        <div class="footer-brand">
-          <a class="brand" href="#top"><img src="/favicon.svg" alt="" width="28" height="28" /><span class="wordmark"><em>Vmix</em> Reference Studio</span></a>
-          <p class="tagline">Search · Present · Broadcast</p>
-        </div>
+        <a class="brand" href="#top"><img src="/favicon.svg" alt="" width="24" height="24" /><span>Vmix Reference Studio</span></a>
         <nav class="footer-links" aria-label="Footer">
-          <div>
-            <h4>Product</h4>
-            <a href="#features">Features</a>
-            <a href="#download">Download</a>
-            <a href="https://github.com/cyriusgonzales-dev/Reference-Studio/releases/latest" data-releases-link target="_blank" rel="noopener">Release notes</a>
-          </div>
-          <div>
-            <h4>Help</h4>
-            <a href="#faq">FAQ</a>
-            <a href="https://ndi.video/tools/" target="_blank" rel="noopener">Get NDI Tools</a>
-          </div>
+          <a href="#download">Download</a>
+          <a href="https://github.com/cyriusgonzales-dev/Reference-Studio/releases/latest" data-releases-link target="_blank" rel="noopener">Release notes</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://ndi.video/tools/" target="_blank" rel="noopener">NDI Tools</a>
         </nav>
       </div>
       <div class="wrap legal">
         <p>© <span data-year>2026</span> Vmix Reference Studio. NDI® is a registered trademark of Vizrt NDI AB. vMix is a trademark of StudioCoast Pty Ltd. Not affiliated with or endorsed by either company.</p>
-        <a href="#top">Back to top ↑</a>
       </div>
     </footer>
   </body>
