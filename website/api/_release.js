@@ -5,7 +5,7 @@
 //   GITHUB_REPO   "owner/repository" (required unless the default below is right)
 //   GITHUB_TOKEN  optional; raises GitHub's rate limit (fine-grained, read-only "Contents")
 
-const DEFAULT_REPO = 'your-github-username/vmix-reference-studio';
+const DEFAULT_REPO = 'cyriusgonzales-dev/Reference-Studio';
 
 export function repo() {
   return (process.env.GITHUB_REPO || DEFAULT_REPO).trim();

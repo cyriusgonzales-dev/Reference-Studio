@@ -58,7 +58,7 @@
   "homepage": "https://vmix-reference-studio.vercel.app",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-github-username/vmix-reference-studio.git"
+    "url": "https://github.com/cyriusgonzales-dev/Reference-Studio.git"
   },
   "engines": {
     "node": ">=22"

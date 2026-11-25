@@ -7,7 +7,7 @@
 
 # Vmix Reference Studio
 
-[![CI](https://github.com/your-github-username/vmix-reference-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/your-github-username/vmix-reference-studio/actions/workflows/ci.yml)
+[![CI](https://github.com/cyriusgonzales-dev/Reference-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/cyriusgonzales-dev/Reference-Studio/actions/workflows/ci.yml)
 
 **Download:** https://vmix-reference-studio.vercel.app · Windows 10/11 and macOS 11+
 

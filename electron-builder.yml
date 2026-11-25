@@ -22,8 +22,8 @@ asarUnpack:
 # Where the in-app updater looks for new versions. Keep in sync with GITHUB_REPO in src/shared/product.ts.
 publish:
   provider: github
-  owner: your-github-username
-  repo: vmix-reference-studio
+  owner: cyriusgonzales-dev
+  repo: Reference-Studio
   releaseType: draft
 
 win:

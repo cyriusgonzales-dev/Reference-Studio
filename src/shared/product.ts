@@ -6,7 +6,7 @@
 export const PRODUCT_NAME = 'Vmix Reference Studio';
 
 /** "owner/repository" on GitHub. Releases there are what the in-app updater installs. */
-export const GITHUB_REPO = 'your-github-username/vmix-reference-studio';
+export const GITHUB_REPO = 'cyriusgonzales-dev/Reference-Studio';
 
 /** The download website (deployed from website/ on Vercel). */
 export const WEBSITE_URL = 'https://vmix-reference-studio.vercel.app';
