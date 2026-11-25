@@ -20,10 +20,12 @@ asarUnpack:
   - node_modules/koffi/**
 
 # Where the in-app updater looks for new versions. Keep in sync with GITHUB_REPO in src/shared/product.ts.
+# This is a separate PUBLIC repository that holds only releases, so the source code can stay
+# private while anyone can download installers and updates. CI writes to it with RELEASES_TOKEN.
 publish:
   provider: github
   owner: cyriusgonzales-dev
-  repo: Reference-Studio
+  repo: Reference-Studio-releases
   releaseType: draft
 
 win:
