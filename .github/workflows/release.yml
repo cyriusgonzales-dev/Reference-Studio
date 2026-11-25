@@ -1,6 +1,6 @@
 # Builds the Windows and macOS installers and publishes them as a GitHub Release in the
-# PUBLIC releases repository (publish.owner/publish.repo in electron-builder.yml). The source
-# code stays in this private repository; only installers and update files go public.
+# repository named by publish.owner/publish.repo in electron-builder.yml (this one). That
+# repository must be PUBLIC so the website and the in-app updater can download from it.
 #
 # How to release (see docs/RELEASING.md):
 #   npm version 1.2.3        # bumps package.json and creates the tag v1.2.3
@@ -9,9 +9,9 @@
 # automatically once every installer is there. The in-app updater and the website only
 # see published releases, so nobody ever gets a half-uploaded release.
 #
-# Required repository secret:
-#   RELEASES_TOKEN   fine-grained personal access token with "Contents: Read and write" on
-#                    the releases repository only (GITHUB_TOKEN cannot write to another repo)
+# Optional repository secret:
+#   RELEASES_TOKEN   only if releases go to a different repository: a fine-grained token with
+#                    "Contents: Read and write" on it (GITHUB_TOKEN can only write to this repo)
 #
 # Optional repository secrets for code signing (builds are unsigned without them):
 #   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD                   Windows code-signing certificate (.pfx, base64)
@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   # Creates the draft release (notes from CHANGELOG.md) before the builds start, so the
@@ -44,19 +44,19 @@ jobs:
           owner=$(awk '/^publish:/{p=1} p && /^ *owner:/{print $2; exit}' electron-builder.yml)
           repo=$(awk '/^publish:/{p=1} p && /^ *repo:/{print $2; exit}' electron-builder.yml)
           echo "repo=$owner/$repo" >> "$GITHUB_OUTPUT"
-      - name: Check the releases token
+      - name: Check the releases repository
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ steps.target.outputs.repo }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::Add the RELEASES_TOKEN repository secret (see docs/RELEASING.md)."
-            exit 1
+          visibility=$(gh repo view "$REPO" --json visibility --jq .visibility) || {
+            echo "::error::Cannot reach $REPO. If releases go to another repository, add a RELEASES_TOKEN secret that can write to it."; exit 1; }
+          if [ "$visibility" != "PUBLIC" ]; then
+            echo "::error::$REPO is $visibility. It must be public, or visitors and the updater cannot download the installers."; exit 1
           fi
-          gh repo view "$REPO" --json name >/dev/null || { echo "::error::RELEASES_TOKEN cannot see $REPO. Create that repository (public, with a README) and give the token access to it."; exit 1; }
       - name: Create the draft release
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.target.outputs.tag }}
           REPO: ${{ steps.target.outputs.repo }}
         run: |
@@ -67,7 +67,9 @@ jobs:
           VERSION="${TAG#v}"
           awk -v v="## $VERSION" '$0 == v {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "Vmix Reference Studio $VERSION" > notes.md
-          gh release create "$TAG" --repo "$REPO" --draft \
+          TARGET=""
+          [ "$REPO" = "$GITHUB_REPOSITORY" ] && TARGET="--target $GITHUB_SHA"
+          gh release create "$TAG" --repo "$REPO" --draft $TARGET \
             --title "Vmix Reference Studio $VERSION" --notes-file notes.md
 
   build:
@@ -107,7 +109,7 @@ jobs:
         if: matrix.platform == 'win'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
@@ -118,18 +120,26 @@ jobs:
         if: matrix.platform == 'mac'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
+          ADHOC=""
           if [ -z "$CSC_LINK" ]; then
             unset CSC_LINK CSC_KEY_PASSWORD
             export CSC_IDENTITY_AUTO_DISCOVERY=false
+            # No Developer ID certificate: sign ad hoc, so macOS offers "Open Anyway" instead of
+            # reporting the app as damaged on Apple silicon.
+            ADHOC="-c.mac.identity=-"
           fi
           [ -z "$APPLE_API_KEY_ID" ] && unset APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_API_KEY
-          npx electron-builder --mac --publish always
+          npx electron-builder --mac --publish always $ADHOC
+          # Fail here, not on a user's Mac, if the app's signature is broken.
+          for app in release/mac*/*.app; do
+            codesign --verify --deep --strict --verbose=2 "$app"
+          done
 
   # Publishes the release once both platforms have uploaded their installers.
   publish:
@@ -138,7 +148,7 @@ jobs:
     steps:
       - name: Publish the release
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.prepare.outputs.tag }}
           REPO: ${{ needs.prepare.outputs.repo }}
         run: |

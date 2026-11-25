@@ -2,6 +2,12 @@
 
 All notable changes to Vmix Reference Studio. Copy the section for a version into its GitHub release notes.
 
+## 0.8.1
+
+### Fixed
+- The Mac app is now signed ad hoc, so on first launch macOS offers **Open Anyway** (System Settings → Privacy & Security) instead of refusing to open it.
+- The download website gives the right installer straight away on Windows and Mac, and shows short install steps for each.
+
 ## 0.8.0
 
 ### Added

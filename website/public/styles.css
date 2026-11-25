@@ -156,6 +156,10 @@ h2 { font-size: clamp(30px, 3.6vw, 44px); text-wrap: balance; }
 .dl-card .req { margin-top: 6px; color: var(--dim); font-size: 15px; }
 .dl-card .btn { margin-top: 28px; }
 .size { margin-top: 12px; color: var(--faint); letter-spacing: 0.04em; }
+.install { margin: 20px 0 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 8px; width: 100%; }
+.install li { counter-increment: step; position: relative; padding-left: 30px; color: var(--dim); font-size: 14px; line-height: 1.5; }
+.install li::before { content: counter(step); position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border: 1px solid var(--line-2); border-radius: 50%; display: grid; place-items: center; font: 500 11px/1 var(--mono); color: var(--faint); }
+.install b { color: var(--text); font-weight: 600; }
 .alt-link { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); width: 100%; color: var(--dim); font-size: 14px; text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
 .alt-link:hover { color: var(--text); text-decoration-color: var(--dim); }
 .fine { margin-top: 28px; color: var(--faint); font-size: 14px; }

@@ -1,7 +1,7 @@
 {
   "name": "vmix-reference-studio",
   "productName": "Vmix Reference Studio",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Search images, YouTube, song lyrics and trusted sources, and send them live to vMix over NDI. For Windows and macOS.",
   "main": "./out/main/index.js",
   "author": {

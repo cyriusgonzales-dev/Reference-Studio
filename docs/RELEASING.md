@@ -4,7 +4,7 @@ This project ships two things:
 
 | What | Where it lives | How it is published |
 | --- | --- | --- |
-| The desktop app (Windows + macOS) | GitHub Releases in the public `Reference-Studio-releases` repo | `.github/workflows/release.yml`, started by pushing a version tag |
+| The desktop app (Windows + macOS) | GitHub Releases in the public `Reference-Studio` repo | `.github/workflows/release.yml`, started by pushing a version tag |
 | The download website | `website/` | Vercel, redeployed on every push to `main` |
 
 The in-app updater (Settings → Updates) reads the **latest published GitHub Release**, so publishing a release is all it takes to update every installed copy.
@@ -13,37 +13,25 @@ The in-app updater (Settings → Updates) reads the **latest published GitHub Re
 
 ## 1. One-time setup
 
-### GitHub repositories
+### GitHub repository
 
-The project uses **two** repositories:
+Releases are published to `cyriusgonzales-dev/Reference-Studio`, which must be **public**: the website and the in-app updater download installers from it without logging in. The release workflow checks this and stops if the repository is private.
 
-| Repository | Visibility | Holds |
-| --- | --- | --- |
-| `cyriusgonzales-dev/Reference-Studio` | **Private** | The source code and the GitHub Actions workflows |
-| `cyriusgonzales-dev/Reference-Studio-releases` | **Public** | Only releases: installers and update files |
-
-The updater and the website download installers without logging in, so releases must be public. The source code doesn't have to be.
-
-1. Create the releases repository on GitHub: **New repository** → name `Reference-Studio-releases` → **Public** → tick **Add a README file** (a release needs at least one commit to attach to) → **Create repository**.
-2. Create a token the workflow can publish with: GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
-   - **Repository access:** *Only select repositories* → `Reference-Studio-releases`
-   - **Permissions → Repository permissions → Contents:** *Read and write*
-   - Pick an expiry, then copy the token.
-3. In the **private** source repository: **Settings → Secrets and variables → Actions → New repository secret**, name `RELEASES_TOKEN`, paste the token.
-4. The releases repository is named in three places, which `npm run release:check` keeps in agreement:
+1. The repository is named in three places, which `npm run release:check` keeps in agreement:
    - `electron-builder.yml`: `publish.owner` / `publish.repo`
    - `src/shared/product.ts`: `GITHUB_REPO` (and `WEBSITE_URL`)
    - `website/api/_release.js`: `DEFAULT_REPO`
+2. In the repository, open **Settings → Actions → General → Workflow permissions** and choose **Read and write permissions**, so the workflow can create releases.
 
-When the token expires, releases fail at "Check the releases token". Generate a new one and update the secret.
+**Want the source code private?** Publish releases to a second, public repository instead: create it with a README, point the three places above at it, and add a `RELEASES_TOKEN` secret (fine-grained token, *Contents: Read and write* on that repository only). The workflow uses that token when it is set.
 
 ### Vercel (download website)
 
 1. On vercel.com: **Add New → Project**, then import the GitHub repository.
 2. Leave every build setting at its default. The root `vercel.json` serves `website/public` and the functions in `api/` (thin wrappers around `website/api`), and skips installing or building the desktop app. Setting **Root Directory** to `website` also works, using `website/vercel.json`; keep the two `vercel.json` files in sync.
 3. Under **Environment Variables**, add:
-   - `GITHUB_REPO` = `cyriusgonzales-dev/Reference-Studio-releases` (optional; that is the built-in default)
-   - `GITHUB_TOKEN` = a fine-grained token with read-only *Contents* access to the releases repo (optional; avoids GitHub's API rate limit on busy days)
+   - `GITHUB_REPO` = `cyriusgonzales-dev/Reference-Studio` (optional; that is the built-in default)
+   - `GITHUB_TOKEN` = a fine-grained token with read-only *Contents* access to the repo (optional; avoids GitHub's API rate limit on busy days)
 4. Deploy. Copy the site's address (for example `https://vmix-reference-studio.vercel.app`) into `WEBSITE_URL` in `src/shared/product.ts` and `homepage` in `package.json`. The app links there from Settings → About, and portable copies send users there to update.
 
 The site serves short links that always point to the newest installer:
@@ -84,7 +72,7 @@ You can't downgrade installed copies automatically. Release a new, higher versio
 Without signing, the builds work, but:
 
 - **Windows** shows "Windows protected your PC" (SmartScreen) until the app builds reputation. The user clicks *More info → Run anyway*. Updates work normally.
-- **macOS** blocks the app on first open. The user right-clicks → *Open*, or uses *System Settings → Privacy & Security → Open Anyway*. **In-app updates cannot install on an unsigned Mac build.** The app detects this and sends the user to the website to download the new version instead.
+- **macOS** blocks the app on first open. The user clicks *Done*, then *System Settings → Privacy & Security → Open Anyway* (on macOS 15 and later, right-click → *Open* no longer works). Unsigned builds are signed ad hoc in CI so macOS offers *Open Anyway* instead of calling the app "damaged". **In-app updates cannot install on an unsigned Mac build.** The app detects this and sends the user to the website to download the new version instead.
 
 To sign, add these **repository secrets** (Settings → Secrets and variables → Actions). The workflow uses them automatically:
 
